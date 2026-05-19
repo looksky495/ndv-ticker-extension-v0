@@ -1,0 +1,28 @@
+name: Create Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+      
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Generate Artifacts
+        run: zip -r release-artifacts.zip css/ data/ font/ img/ library/ modules/ sandbox/ scripts/ sound/ disp-commands.html manifest.json popup2.html settings.html updateNotice.html
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: release-artifacts.zip
+          tag: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          bodyFile: RELEASE.md
+          generateReleaseNotes: true
+          draft: false
+          prerelease: false
