@@ -2,8 +2,6 @@ const RequestURL = {
   iedred7584_eew: "https://api.iedred7584.com/eew/json/",
   yahoo_kmoni_eew: "https://weather-kyoshin.west.edge.storage-yahoo.jp/RealTimeData/{yyyyMMdd}/{yyyyMMddHHmmss}.json",
   lmoni_eew: "https://www.lmoni.bosai.go.jp/monitor/webservice/hypo/eew/{yyyyMMddHHmmss}.json",
-  nhkQuake1: "https://www.nhk.or.jp/weather-data/v1/wx/quake/info/?akey=18cce8ec1fb2982a4e11dd6b1b3efa36",
-  nhkQuake2: "https://www.nhk.or.jp/weather-data/v1/wx/quake/detail/{event_id}.json",
   jmaDevFeedExtra: "https://www.data.jma.go.jp/developer/xml/feed/extra.xml",
   wni_mscale: "https://weathernews.jp/mscale/json/scale.json",
   wni_sorabtn: "https://weathernews.jp/v/sorawolive/data/json/solive_sorabtn.json",
