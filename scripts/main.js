@@ -47,8 +47,7 @@ const AppVersionHistory = [
 
 const AppVersionCode = "beta30";
 const AppVersionView = "β0.6.0";
-console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c
-β0.6.0 正式版リリース前テスト`,
+console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 9px; color: #888;",
