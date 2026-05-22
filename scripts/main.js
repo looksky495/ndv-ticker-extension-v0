@@ -406,7 +406,7 @@ const shindoListNHK = ["","1","2","3","4","?","5-","5+","6-","6+","7"]
 var textSpeed = 5,
     viewMode = 0,
     language = "Ja",
-    timeCount = 0,
+    uptimeCount = 0,
     directTexts = [
       '<weather/temperature/high>',
       '<weather/temperature/low>',
@@ -1485,7 +1485,7 @@ const Routines = {
     if((q_startTime % Math.floor(elements.id.setIntervalIedred.valueAsNumber/20)) === 1){
       eewChecking_c1();
     }
-    timeCount++;
+    uptimeCount++;
     q_startTime++;
     p2p_elapsedTime++;
     switch (textCmdIds[viewingTextIndex]) {
@@ -1518,14 +1518,14 @@ const Routines = {
     if (t_viewType === 2 && !t_Cancelled){
       directTexts[viewingTextIndex] = DataOperator.tsunami.text.whole;
     }
-    if ((timeCount%275) === 0){
+    if ((uptimeCount%275) === 0){
       if (language == "Ja"){
         language = "En";
       } else {
         language = "Ja";
       }
     }
-    //CB to if((timeCount%))
+    //CB to if((uptimeCount%))
     if (TextWidth > textOffsetX){
       textOffsetX = 1200;
       q_currentShindo--;
@@ -1782,7 +1782,7 @@ const Routines = {
         context.font = "23px '7barSP'";
         context.fillText(q_timeAll, 595, 23);
         // 水色
-        context.fillStyle = (((timeCount%12)<5) && timeCount<216 && (timeCount%72)<60) ? "#e02222" : (q_magnitude == "--") ? "#f2f241" : "#2229";
+        context.fillStyle = (((uptimeCount%12)<5) && uptimeCount<216 && (uptimeCount%72)<60) ? "#e02222" : q_isSokuho ? "#f2f241" : "#2229";
         context.fillRect(224, 1, 10, 58);
         // 矢印(内容 タイトル)
         context.fillStyle = colorScheme[colorThemeMode][0][mscale]+"99";
@@ -1807,13 +1807,13 @@ const Routines = {
         context.lineTo(  4+dif, 123);
         context.stroke();
         //アニメーション
-        if (timeCount < 13){
+        if (uptimeCount < 13){
           context.fillStyle = "#fff5";
           context.beginPath();
-          context.moveTo((-(timeCount)*95)+1240, 0);
-          context.lineTo((-(timeCount)*95)+1270, 0);
-          context.lineTo((-(timeCount)*95)+1210, 127);
-          context.lineTo((-(timeCount)*95)+1180, 127);
+          context.moveTo((-(uptimeCount)*95)+1240, 0);
+          context.lineTo((-(uptimeCount)*95)+1270, 0);
+          context.lineTo((-(uptimeCount)*95)+1210, 127);
+          context.lineTo((-(uptimeCount)*95)+1180, 127);
           context.fill();
         }
         if(earthquake_telop_times > 1){
@@ -1872,7 +1872,7 @@ const Routines = {
     }
     if (!t_Cancelled && viewMode !== 1 && t_viewType === 1){
       if (t_page < 0 || viewMode === 3){
-        const colorAlpha = ((viewMode !== 2) ? "ff" : ("0"+Math.min(255,Math.abs(Math.trunc((160-timeCount%320)*2))).toString(16)).slice(-2));
+        const colorAlpha = ((viewMode !== 2) ? "ff" : ("0"+Math.min(255,Math.abs(Math.trunc((160-uptimeCount%320)*2))).toString(16)).slice(-2));
         context.fillStyle = "#b33122" + colorAlpha;
         context.fillRect(815, 0, 265, 43);
         context.font = "500 30px " + FontFamilies.sans;
@@ -3408,8 +3408,7 @@ function toFull(str){
 }
 
 function viewQuake(){
-  timeCount = 1;
-  earthquake_telop_times = q_magnitude!="--" ? 0 : -1027;
+  uptimeCount = 1;
   earthquake_telop_remaining = 1500;
   // 20231105 削除 カスタム地震情報
   const magnitude_r_jp = {"-901": "不明", "-902": "8を超える巨大地震"};
@@ -4225,7 +4224,7 @@ document.getElementsByName("goMessage")[0].addEventListener('click', function(){
   SetMode(0);
   textOffsetX = 1200;
   language = "Ja";
-  timeCount = 217;
+  uptimeCount = 217;
 });
 document.getElementById("into-fullscreen").addEventListener('click', function(){
   const ratio = (window.outerWidth-Window_FrameWidth)/window.innerWidth;
@@ -4242,15 +4241,15 @@ document.getElementById("into-fullscreen").addEventListener('click', function(){
 
 document.getElementsByName("skipMessage")[0].addEventListener('click', function(){textOffsetX = -9007199254740000;});
 document.getElementsByName("tmpSH-btn")[0].addEventListener('click', function(){$('.template-box').toggle();});
-document.getElementsByName("tmpl-button")[0].addEventListener('click', function(){quakeTemplateView(1); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[1].addEventListener('click', function(){quakeTemplateView(2); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[2].addEventListener('click', function(){quakeTemplateView(3); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[3].addEventListener('click', function(){quakeTemplateView(4); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[4].addEventListener('click', function(){quakeTemplateView(5); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[5].addEventListener('click', function(){quakeTemplateView(6); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[6].addEventListener('click', function(){quakeTemplateView(7); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[7].addEventListener('click', function(){quakeTemplateView(8); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
-document.getElementsByName("tmpl-button")[8].addEventListener('click', function(){quakeTemplateView(9); SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
+document.getElementsByName("tmpl-button")[0].addEventListener('click', function(){quakeTemplateView(1); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[1].addEventListener('click', function(){quakeTemplateView(2); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[2].addEventListener('click', function(){quakeTemplateView(3); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[3].addEventListener('click', function(){quakeTemplateView(4); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[4].addEventListener('click', function(){quakeTemplateView(5); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[5].addEventListener('click', function(){quakeTemplateView(6); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[6].addEventListener('click', function(){quakeTemplateView(7); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[7].addEventListener('click', function(){quakeTemplateView(8); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
+document.getElementsByName("tmpl-button")[8].addEventListener('click', function(){quakeTemplateView(9); SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
 document.getElementById("speedVal").addEventListener('input', function (){
   changeTextSpeed();
 });
@@ -4285,7 +4284,7 @@ document.getElementById("stopEEWtest").addEventListener('click', function(){
 });
 
 // background_send("ZoomInformation["+Math.round(window.outerWidth/window.innerWidth*100)/100+"]");
-document.getElementById("ChangeToEq").addEventListener('click', function (){SetMode(2); textOffsetX = 1200; language = "Ja"; timeCount = 217;});
+document.getElementById("ChangeToEq").addEventListener('click', function (){SetMode(2); textOffsetX = 1200; language = "Ja"; uptimeCount = 217;});
 
 document.getElementById("speech-vol-input").addEventListener("input", function (event){
   speechBase.volume = event.target.valueAsNumber;
