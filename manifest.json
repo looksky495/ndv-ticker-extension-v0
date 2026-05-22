@@ -68,10 +68,13 @@
       "scripts/*.wasm",
       "library/*.js"
     ],
-    "matches": []
+    "matches": ["<all_urls>"]
   }],
   "sandbox": {
     "pages": [ "sandbox/webassembly.html" ]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; frame-src 'self' chrome-extension:;"
   },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs2qC/KZW8IjyRyqlOh1TMmeWOALdvCuEaeXDntStMrDfI050baiS8kQO4JiUmDjQXKVK8JlUcqtNcSr67TnQUcoVk5qyLVxmsBz6mLDhmaAxfVU3LXjLJj71GVptF4d9A45Ughijktjp0IZ01pxCesk2DjR9kj6QbL0r4ksreyYN7Ugdkjfr0Aoxi0sneDkyz4lxXkmXIhZCx/IodnmjA9vY/mE2wUFbp0O6Je08lu6/N+pmFOHH2aDWgeJcmPShC3sgCO1xj8xzc5/zdttCr+D639wm/r8cZiH0lQ909IHAgqKUF42xqgMpwdPWUmtrGA/7cljM9kaHIJoaqATmHQIDAQAB"
 }
