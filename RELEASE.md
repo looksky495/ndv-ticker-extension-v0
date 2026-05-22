@@ -2,10 +2,16 @@
 
 現在、正式版の v1 を開発中です。進捗は [looksky495/ndv-ticker-extension](https://github.com/looksky495/ndv-ticker-extension) から確認しましょう！
 
-## 変更点
+## 変更
 
 * 地震情報の取得元を気象庁サイトへ変更しました。
+  * この影響で、地震情報の文章が変更されています。
+  * 地震情報ウィンドウの UI が少し変更されています。
 * 2026 年 5 月 28 日から運用が開始される [新しい防災気象情報](https://www.jma.go.jp/jma/kishou/know/bosai/keiho-update2026/) に対応しました。
+
+## 追加
+
+* 「遠地地震情報」・「顕著な地震の震源要素更新のお知らせ」に対応しました。
 
 ## 修正
 
