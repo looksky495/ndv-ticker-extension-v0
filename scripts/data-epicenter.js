@@ -690,8 +690,7 @@ const epicenter_list = [
 		"Near the North Pole",
 		"Near the South Pole",
 		"Distant",
-		"-------------",
-		"(Example Information)"
+		"-------------"
 	],
 	[
 		"北海道地方",
@@ -1037,8 +1036,7 @@ const epicenter_list = [
 		"北极附近",
 		"南极附近",
 		"遠地",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"北海道地方",
@@ -1384,8 +1382,7 @@ const epicenter_list = [
 		"北極附近",
 		"南極附近",
 		"遠地",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"홋카이도 지방",
@@ -1731,8 +1728,7 @@ const epicenter_list = [
 		"북극 부근",
 		"남극 부근",
 		"원지",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"Região de Hokkaidō",
@@ -2078,8 +2074,7 @@ const epicenter_list = [
 		"Perto do Ártico",
 		"Perto da Antártica",
 		"Lugar distante",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"Región Hokkaido",
@@ -2425,8 +2420,7 @@ const epicenter_list = [
 		"Cerca del Polo Norte (Ártico)",
 		"Cerca de Polo Sur (Antártica)",
 		"Lugar distante",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"Daerah Hokkaido",
@@ -2772,8 +2766,7 @@ const epicenter_list = [
 		"Sekitar Kutub Utara",
 		"Sekitar Kutub Selatan",
 		"Tempat Jauh",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"Vùng Hokkaido",
@@ -3119,8 +3112,7 @@ const epicenter_list = [
 		"Vùng phụ cận Bắc cực",
 		"Vùng phụ cận Nam cực",
 		"Nơi xa",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"Região de Hokkaidō",
@@ -3466,8 +3458,7 @@ const epicenter_list = [
 		"Perto do Ártico",
 		"Perto da Antártica",
 		"Lugar distante",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"ภูมิภาคฮกไกโด",
@@ -3813,8 +3804,7 @@ const epicenter_list = [
 		"บริเวณใกล้เคียงขั้วโลกเหนือ",
 		"บริเวณใกล้เคียงขั้วโลกใต้",
 		"พื้นที่ห่างไกล",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"होक्काइदो क्षेत्र",
@@ -4160,8 +4150,7 @@ const epicenter_list = [
 		"उत्तरी ध्रुव नजिक",
 		"दक्षिणी ध्रुव नजिक",
 		"रिमोट पोइन्ट",
-		"-------------",
-		""
+		"-------------"
 	],
 	[
 		"011",
