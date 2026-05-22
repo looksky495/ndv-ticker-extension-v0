@@ -335,7 +335,8 @@ body.fullview img.settings-icon {
 
 #menu .eiwind {
   color: #ffff;
-  height: 156px; width: 400px;
+  height: 146px; width: 400px;
+  padding: 5px;
   background-color: #000b;
   border: #000 1px solid;
   overflow: scroll;

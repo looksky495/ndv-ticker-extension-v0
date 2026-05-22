@@ -395,8 +395,6 @@ for (let i = 33; i < 56; i++){
   });
 }
 
-var q_maxShindo = -1; //「+1」の部分は、震度に「5弱以上と推定」を追加した部分。
-var q_currentShindo = q_maxShindo;
 
 // constants for Shindo names
 const shindoListJP = ["","1","2","3","4","5弱以上","5弱","5強","6弱","6強","7"];
@@ -437,8 +435,11 @@ var q_msiText = shindoListJP[q_maxShindo],
     q_timeAll = "",
     q_startTime = 0,
     q_epiIdx = 0,
-    quake_customComment = "";
-var earthquakes_log = {};
+    quake_customComment = "",
+    q_maxShindo = -1, //「+1」の部分は、震度に「5弱以上と推定」を追加した部分。
+    q_isSokuho = false,
+    q_currentShindo = q_maxShindo,
+    earthquakes_log = {};
 // variables of Earthquake Early Warning
 var eewEpicenter = '',
     eewOriginTime = new Date("2000/01/01 00:00:00"),
@@ -1456,7 +1457,9 @@ const Routines = {
     }
 
     if (viewMode !== 3) textOffsetX -= textSpeed;
-    if (elements.id.setIntervalNHKquake.valueAsNumber < targetTimeInt - load_quake_list_v2.lastCall) load_quake_list_v2();
+    
+    // if (elements.id.setIntervalNHKquake.valueAsNumber < targetTimeInt - loadP2PQuakeList.lastCall) loadP2PQuakeList();
+    if ((q_startTime % Math.floor(elements.id.setIntervalNHKquake.valueAsNumber/20)) === 1) DataOperator.earthquake.loadList();
     if ((q_startTime % Math.floor(elements.id.setIntervalTenkiJpTsu.valueAsNumber/20)) === 1) DataOperator.tsunami.load();
     if ((q_startTime % Math.floor(elements.id.setIntervalTyphCom.valueAsNumber/20)) === 1) DataOperator.typh_comment.load();
     if ((q_startTime % Math.floor(elements.id.setIntervalWarn.valueAsNumber/20)) === 1) DataOperator.warn_current.load();
@@ -1756,7 +1759,7 @@ const Routines = {
           if (language === "En") context.drawImage(isMscale2 ? images.quake.texts.depth.en2 : images.quake.texts.depth.en, 917, 3);
         }
         // 深さ（km）
-        if (q_depth!="ごく浅い" && q_depth!="ごく浅く" && q_depth) context.drawImage(isMscale2 ? images.quake.texts.depth_km2 : images.quake.texts.depth_km, 1042, 28);
+        if (q_depth !== "ごく浅い" && q_depth !== "深い" && q_depth) context.drawImage(isMscale2 ? images.quake.texts.depth_km2 : images.quake.texts.depth_km, 1042, 28);
         // マグニチュード（ラベル）
         // context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 406, 0);
         context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 420, 25);
@@ -1765,10 +1768,14 @@ const Routines = {
         // マグニチュード
         DrawTextureText(q_magnitude, 462, 45, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0});
         // 深さ
-        if (q_depth == "ごく浅い"){
+        if (q_depth === "ごく浅い"){
           context.font = "500 30px Inter, " + FontFamilies.sans;
           if (language === "Ja") context.fillText("ごく浅い", 950, 53, 90);
           if (language === "En") context.fillText("shallow", 975, 53, 90)
+        } else if (q_depth === "深い") {
+          context.font = "500 30px Inter, " + FontFamilies.sans;
+          if (language === "Ja") context.fillText("深い", 950, 53, 90);
+          if (language === "En") context.fillText("deep", 975, 53, 90);
         } else {
           DrawTextureText(q_depth, 978, 48, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0}, 60);
         }
@@ -3408,112 +3415,59 @@ function toFull(str){
 }
 
 function viewQuake(){
+  // 20260522 いろいろ削除
+
   uptimeCount = 1;
+  earthquake_telop_times = q_isSokuho ? 0 : -5;
   earthquake_telop_remaining = 1500;
-  // 20231105 削除 カスタム地震情報
-  const magnitude_r_jp = {"-901": "不明", "-902": "8を超える巨大地震"};
-  const magnitude_r_en = {"-901": "unknown", "-902": "above 8"};
-  if (q_magnitude !== "--"){
-    quakeText[0] = q_timeDD+"日"+q_timeH+"時"+q_timeM+"分頃、最大震度"+shindoListJP[q_maxShindo]+"を観測する地震が発生しました。震源は"+q_epiName+"、地震の規模を示すマグニチュードは"+(magnitude_r_jp[q_magnitude] || q_magnitude);
-    if (q_depth == "ごく浅い") quakeText[0] += "、震源は"+q_depth+"です。"; else quakeText[0] += "、震源の深さは"+q_depth+"kmです。";
-    quakeText[0] += quake_customComment;
-  } else {
-    quakeText[0] = "［震度速報］ "+q_timeDD+"日"+q_timeH+"時"+q_timeM+"分頃、最大震度"+shindoListJP[q_maxShindo]+"を観測する地震が発生しました。"+multilingual[0][63];
-    quakeText[0] += "震源が沖の場合、津波が発生する恐れがあります。海岸から離れるようにしてください。";
-  }
-  const ampm = (q_timeH-0) > 11 ? "PM" : "AM";
-  if (q_magnitude !== "--"){
-    quakeText[0] += "　　　　　　　" + ampm + " " + (q_timeH % 12) + ":" + q_timeM + " JST - A "+(magnitude_r_en[q_magnitude] || q_magnitude)+" magnitude earthquake with a maximum intensity of "+shindoListNHK[q_maxShindo]+" occurred. The epicenter was located in " + epicenter_list[1][q_epiIdx] + ", with a depth of ";
-    if(q_depth === "ごく浅い") quakeText[0] += "very shallow."; else quakeText[0] += q_depth+"km.";
-  } else {
-    quakeText[0] += "　　　　　　　" + ampm + " " + (q_timeH % 12) + ":" + q_timeM + " JST - An earthquake with a maximum seismic intensity of "+shindoListNHK[q_maxShindo]+" occurred. Please pay attention to further information!";
-    if(q_maxShindo > 5){
-      //mainText[0] = "震源が海底ですと、津波が発生する恐れがあります。海岸から離れるようにしてください。"
-    }
-  }
+  q_currentShindo = q_maxShindo;
+
   SetMode(2);
   language = "Ja";
   textOffsetX = 1200;
-  let titletext = "", windtext = "";
-  if (q_magnitude != "--") titletext = "[地震情報](" + q_timeH + ":" + q_timeM + "頃発生) 震源地:" + q_epiName + " 最大震度:" + shindoListJP[q_maxShindo] + " M" + (magnitude_r_jp[q_magnitude] || q_magnitude) + " 深さ:" + ((q_depth == "ごく浅い")?q_depth:"約"+q_depth+"km"); else titletext = "＜震度速報＞　" + q_timeH + "時" + q_timeM + "分頃発生　最大震度" + shindoListJP[q_maxShindo];
-  document.getElementById("eiTitle").innerText = titletext;
-  document.getElementById("eiTitle").scrollLeft = 365;
-  document.getElementById("eiwind").innerText = "";
-  if (q_maxShindo == -1){
-    document.getElementById("eiTitle").innerText = "まだ情報は入っていません。";
-    document.getElementById("eiwind").innerText = "There is no information avilable.";
-  } else {
-    for (let i=10; i>0; i--){
-      if (quakeText[i] != ""){
-        windtext += "［震度" + toFull(shindoListJP[i]) + "］\n　" + ( (!isSokuho) ? (quakeText[i].replace(/　 </g, '\n　').slice(1)) : (quakeText[i].replace(/　 </g, '\n　')) ).replace(/> /g, '：') + "\n";
-      }
-    }
-    document.getElementById("eiwind").innerText = windtext;
-    if (document.getElementById("setClipQuake").checked) copyText(titletext + "\n\n" + windtext.replaceAll("<br>","\n"));
-  }
 }
 
-var isSokuho = false;
-var lasteqlist = "";
+var lasteqid = "";
 var num = 0;
 var l = [];
-/** 地震リストを取得 */
-function load_quake_list_v2(){
-  load_quake_list_v2.lastCall = NaN;
-  fetch(RequestURL.nhkQuake1+"&_="+Date.now()).then(res => res.json()).then(data => {
-    load_quake_list_v2.tracker.update();
-    load_quake_list_v2.lastCall = load_quake_list_v2.tracker.lastTime;
-    const eqlist = JSON.stringify(data.quake) + quakeinfo_offset_cnt;
-    // const magnitude_not_a_number = {"M不明": 1, "M8を超える巨大地震": 2, "Ｍ不明": 1, "Ｍ８を超える巨大地震": 2};
-    const earthquake_intensity_list_all = { "S1": '1', "S2": '2', "S3": '3', "S4": '4', "S5-": '5弱', "S5+": '5強', "S6-": '6弱', "S6+": '6強', "S7": '7', "LS5-": '5弱(推定)', "LS5+": '5強(推定)', "LS6-": '6弱(推定)', "LS6+": '6強(推定)', "LS7": '7(推定)' };
-    const earthquake_intensity_color_all = { "S1": '#f2f2ff', "S2": '#68c8fd', "S3": '#869ffd', "S4": '#fae696', "S5-": '#faf500', "S5+": '#febb6f', "S6-": '#ff2800', "S6+": '#a50021', "S7": '#b40068', "LS5-": '#faf500', "LS5+": '#febb6f', "LS6-": '#ff2800', "LS6+": '#a50021', "LS7": '#b40068' };
-    let quakeinfo_list_html = "";
-    if(lasteqlist !== eqlist){
-      data.quake.forEach((c2, num) => {
-        const event_date = new Date(c2.event_date);
-        quakeinfo_list_html += '<button type="button" data-e=' + num;
-        quakeinfo_list_html += ' name="elo' + num + '" id="el' + c2.event_id;
-        quakeinfo_list_html += '" style="background-color:';
-        quakeinfo_list_html += earthquake_intensity_color_all[c2.max_shindo] || "#ffffff";
-        quakeinfo_list_html += '; color:';
-        quakeinfo_list_html += /* (c2.max_shindo=="S3" || Number(c2.max_shindo.slice(1,2))>6) ? "#fff" : */"#000";
-        quakeinfo_list_html += '; ';
-        if (num === quakeinfo_offset_cnt) quakeinfo_list_html += 'animation: 2s animation_current_quake_view 0s infinite;';
-        quakeinfo_list_html += '" class="eiList-button">';
-        if (c2.hypocenter.name === "") quakeinfo_list_html += '<span style="color:#fff; background-color:#000 padding:2px;">　';
-        quakeinfo_list_html += c2.hypocenter.name === "" ? "震源未確定" : c2.hypocenter.name;
-        quakeinfo_list_html += '　最大震度' + earthquake_intensity_list_all[c2.max_shindo];
-        quakeinfo_list_html += '　' + event_date.getDate() + "日" + event_date.getHours() + "時" + event_date.getMinutes() + "分頃発生";
-        if (c2.hypocenter.name === "") quakeinfo_list_html += "　</span>";
-        quakeinfo_list_html += '</button>';
-      });
-      document.getElementById("eiList").innerHTML = quakeinfo_list_html;
-      forEach2(document.getElementsByClassName("eiList-button"), function(c, i){
-        c.addEventListener("click", function(e){
-          const itemOffset = e.currentTarget.getAttribute("data-e") - 0;
-          if (itemOffset !== quakeinfo_offset_cnt){
-            quakeinfo_offset_cnt = itemOffset;
-            quakesContainer.view();
-          }
-          console.log(
-            e.currentTarget.getAttribute("id"),
-            e.currentTarget.getAttribute("name").slice(3) - 0,
-            earthquakes_log.hasOwnProperty(e.currentTarget.getAttribute("id").slice(2))
-          );
-          load_quake_list_v2();
-        });
-      });
-    }
-    lasteqlist = eqlist;
-    load_quake_event_v2(data.quake[quakeinfo_offset_cnt].event_id);
-  }).catch(() => {
-    // 通信エラーでNaNのままになるのを阻止する
-    // 単純に代入するだけだと、無限にリクエストする
-    load_quake_list_v2.lastCall = Date.now();
-  });
-}
-load_quake_list_v2.tracker = new TrafficTracker("NHK / 地震情報一覧");
-load_quake_list_v2.lastCall = 0;
+
+DataOperator.earthquake.onSummaryUpdated = summaryData => {
+  const quakeItemList = document.getElementById("eiList");
+  quakeItemList.innerHTML = "";
+  
+  for (const entry of summaryData){
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("eiList-button");
+    button.style.backgroundColor = entry.summary.backcolor;
+    button.style.color = entry.summary.textcolor;
+    button.dataset.eventId = entry.eventId;
+    button.textContent = `${entry.summary.label.epicenter}　${entry.summary.label.intensity}　${entry.summary.label.time}`;
+    quakeItemList.appendChild(button);
+    
+    button.addEventListener("click", event => {
+      DataOperator.earthquake.activate(event.currentTarget.dataset.eventId);
+    });
+  }
+};
+
+DataOperator.earthquake.onActivated = (eventId, detail) => {
+  q_timeAll = detail.timeStr;
+  q_depth = detail.depthStr;
+  q_epiIdx = detail.epicenterIndex;
+  q_epiName = detail.epicenterName;
+  q_isSokuho = detail.isSokuho;
+  q_magnitude = detail.magnitude;
+  q_maxShindo = detail.maxShindo;
+  quakeText = detail.shindoOneline;
+  
+  const multilineText = `${detail.isSokuho ? "【震度速報】" : "【地震情報】"} ${detail.shindoOneline[0].replace(/　　　.*/g, "")}\n\n${detail.shindoMultiline}`;
+  document.getElementById("eiwind").innerText = multilineText;
+  document.getElementById("eiwind").scrollTop = 0;
+  if (document.getElementById("setClipQuake").checked) copyText(multilineText);
+  
+  viewQuake();
+};
 
 var earthquake_latest_identifier = "";
 // var earthquake_event_isloading = false;
@@ -3521,7 +3475,8 @@ var earthquake_latest_identifier = "";
  * 地震のイベントを取得
  * @param {String} event_id イベントID
  */
-function load_quake_event_v2(event_id){
+function load_quake_event_v2(p2pquakeEventData){
+  const { event_id } = p2pquakeEventData;
   fetch(RequestURL.nhkQuake2.replace("{event_id}", event_id)+"?_="+Date.now()).then(res => {
     load_quake_event_v2.tracker.update();
     const identifier = event_id + res.headers.get("last-modified");
@@ -3549,7 +3504,7 @@ function load_quake_event_v2(event_id){
       q_maxShindo = earthquake_intensity_list_all[data.max_shindo];
       q_currentShindo = q_maxShindo;
       q_msiText = shindoListJP[q_maxShindo];
-      isSokuho = data.sokuho === "1";
+      q_isSokuho = data.sokuho === "1";
 
       if (data.hypocenter.code){
         q_epiIdx = epicenter_list[12].indexOf(data.hypocenter.code);
@@ -3570,7 +3525,7 @@ function load_quake_event_v2(event_id){
       for (let key in earthquake_intensity_list_all){
         if(data.hasOwnProperty(key)){
           quakeText[earthquake_intensity_list_all[key]] = data[key].pref.map(pref => {
-            return (isSokuho ? "" : "<"+pref.name+"> ") + pref.uid_list.map(city => city.name).join(" ");
+            return (q_isSokuho ? "" : "<"+pref.name+"> ") + pref.uid_list.map(city => city.name).join(" ");
           }).join("　 ");
         }
       }
@@ -3589,7 +3544,7 @@ function load_quake_event_v2(event_id){
         epicenter: q_epiName,
         magnitude: q_magnitude,
         msi: q_maxShindo,
-        isSokuho: isSokuho,
+        q_isSokuho: q_isSokuho,
         seismic_intensity: q_msiText,
         depth: q_depth,
         timeDD: q_timeDD,
@@ -3676,7 +3631,7 @@ function quakeTemplateView(viewId){
     q_epiIdx = 87;
     q_depth = "10";
     q_timeYY = "2019";
-    q_timeMM = "6";
+    q_timeMM = "06";
     q_timeDD = "18";
     q_timeH = "22";
     q_timeM = "22";
@@ -3700,9 +3655,9 @@ function quakeTemplateView(viewId){
     q_epiIdx = 35;
     q_depth = "40";
     q_timeYY = "2018";
-    q_timeMM = "9";
-    q_timeDD = "6";
-    q_timeH = "3";
+    q_timeMM = "09";
+    q_timeDD = "06";
+    q_timeH = "03";
     q_timeM = "08";
     quakeText[1] = "<北海道> 網走市 音威子府村 中頓別町 佐呂間町 滝上町 西興部村 羅臼町　 <岩手県> 陸前高田市 雫石町 西和賀町 大槌町 岩泉町 田野畑村　 <宮城県> 仙台青葉区 仙台宮城野区 仙台若林区 仙台太白区 名取市 富谷市 蔵王町 村田町 亘理町 山元町 利府町 大郷町 大衡村 色麻町 宮城加美町　 <秋田県> 秋田市 横手市 男鹿市 湯沢市 由利本荘市 にかほ市 仙北市 小坂町 上小阿仁村 五城目町 八郎潟町 大潟村 秋田美郷町 羽後町 東成瀬村　 <山形県> 米沢市 鶴岡市 新庄市 寒河江市 上山市 天童市 山辺町 河北町 最上町 舟形町 大蔵村 鮭川村 三川町 庄内町　 <福島県> 福島市 郡山市 いわき市 須賀川市 相馬市 田村市 天栄村 玉川村 福島広野町 大熊町 浪江町　 <茨城県> 日立市 土浦市 石岡市 笠間市 常陸大宮市 筑西市　 <埼玉県> 春日部市　 <新潟県> 村上市";
     quakeText[2] = "<北海道> 稚内市 紋別市 渡島松前町 福島町 奥尻町 寿都町 泊村 上川地方上川町 下川町 美深町 上川中川町 初山別村 遠別町 天塩町 浜頓別町 宗谷枝幸町 豊富町 利尻富士町 幌延町 美幌町 津別町 斜里町 清里町 小清水町 訓子府町 置戸町 遠軽町 湧別町 雄武町 えりも町 陸別町 厚岸町 浜中町 弟子屈町 中標津町　 <青森県> 弘前市 黒石市 鰺ヶ沢町 深浦町 西目屋村 大鰐町 中泊町 田子町 新郷村　 <岩手県> 大船渡市 花巻市 北上市 遠野市 一関市 釜石市 八幡平市 奥州市 滝沢市 葛巻町 岩手町 紫波町 金ケ崎町 平泉町 住田町 山田町 九戸村 岩手洋野町 一戸町　 <宮城県> 気仙沼市 角田市 岩沼市 登米市 栗原市 東松島市 大崎市 大河原町 宮城川崎町 丸森町 松島町 宮城美里町 南三陸町　 <秋田県> 能代市 大館市 鹿角市 潟上市 大仙市 北秋田市 藤里町 三種町 八峰町 井川町　 <山形県> 酒田市 村山市 中山町 遊佐町　 <福島県> 南相馬市 双葉町";
@@ -3724,9 +3679,9 @@ function quakeTemplateView(viewId){
     q_epiIdx = 171;
     q_depth = "10";
     q_timeYY = "2018";
-    q_timeMM = "6";
+    q_timeMM = "06";
     q_timeDD = "18";
-    q_timeH = "7";
+    q_timeH = "07";
     q_timeM = "58";
     quakeText[1] = "<茨城県> 筑西市　 <埼玉県> さいたま中央区 さいたま緑区 熊谷市 加須市 春日部市 鴻巣市 志木市 久喜市 富士見市 川島町 宮代町　 <東京都> 東京北区 東京板橋区　 <神奈川県> 川崎川崎区 川崎中原区 川崎宮前区 藤沢市 湯河原町　 <新潟県> 糸魚川市 上越市　 <富山県> 富山市 魚津市 砺波市 上市町 立山町 富山朝日町　 <石川県> 七尾市 珠洲市 羽咋市 穴水町　 <山梨県> 甲州市 山梨南部町 富士河口湖町　 <長野県> 長野市 松本市 上田市 岡谷市 伊那市 塩尻市 佐久市 東御市 安曇野市 軽井沢町 御代田町 立科町 富士見町 原村 辰野町 南箕輪村 中川村 宮田村 阿南町 下條村 売木村 天龍村 大鹿村 木祖村 大桑村 山形村 坂城町　 <岐阜県> 七宗町 白川町 東白川村 白川村　 <静岡県> 静岡葵区 静岡駿河区 沼津市 三島市 富士宮市 島田市 焼津市 御殿場市 伊豆市 御前崎市 河津町 西伊豆町 静岡清水町 長泉町 吉田町 川根本町 静岡森町　 <愛知県> 設楽町 東栄町 豊根村　 <三重県> 南伊勢町　 <和歌山県> 和歌山印南町 すさみ町　 <鳥取県> 岩美町 三朝町 大山町 日南町 鳥取日野町 江府町　 <島根県> 益田市 安来市 江津市 奥出雲町 川本町 島根美郷町 邑南町　 <岡山県> 井原市 高梁市 新見市 新庄村 久米南町 吉備中央町　 <広島県> 広島中区 広島南区 広島西区 広島安佐北区 広島安芸区 広島府中市 広島三次市 庄原市 大竹市 東広島市 廿日市市 海田町 世羅町 神石高原町　 <山口県> 下関市 宇部市 山口市 岩国市 周防大島町 平生町　 <徳島県> 徳島三好市 勝浦町 上勝町 佐那河内村 神山町 つるぎ町 東みよし町　 <愛媛県> 宇和島市 八幡浜市 新居浜市 西条市 四国中央市 東温市 伊方町　 <高知県> 室戸市 南国市 高知香南市 香美市 東洋町 安田町 北川村 馬路村 大豊町 黒潮町　 <福岡県> 中間市　 <佐賀県> 神埼市 白石町";
     quakeText[2] = "<富山県> 高岡市 氷見市 滑川市 小矢部市 南砺市 射水市 舟橋村　 <石川県> 金沢市 小松市 輪島市 かほく市 白山市 能美市 川北町 津幡町 志賀町 宝達志水町 中能登町 能登町　 <福井県> 大野市 勝山市 永平寺町 南越前町 福井美浜町　 <山梨県> 甲府市 南アルプス市 山梨北杜市 中央市 市川三郷町 富士川町 忍野村 山中湖村　 <長野県> 諏訪市 駒ヶ根市 茅野市 長野南牧村 下諏訪町 箕輪町 飯島町 松川町 長野高森町 阿智村 平谷村 根羽村 泰阜村 喬木村 豊丘村 上松町 南木曽町 王滝村 木曽町　 <岐阜県> 高山市 中津川市 恵那市 各務原市 可児市 飛騨市 郡上市 下呂市 坂祝町 富加町 川辺町 八百津町 御嵩町　 <静岡県> 静岡清水区 浜松中区 浜松東区 浜松西区 浜松南区 浜松北区 浜松天竜区 富士市 磐田市 掛川市 藤枝市 湖西市 伊豆の国市 牧之原市　 <愛知県> 名古屋千種区 名古屋東区 名古屋中村区 名古屋中区 名古屋昭和区 名古屋守山区 名古屋緑区 名古屋名東区 名古屋天白区 豊橋市 岡崎市 瀬戸市 春日井市 豊川市 碧南市 犬山市 愛知江南市 小牧市 新城市 知立市 岩倉市 日進市 田原市 北名古屋市 大口町 扶桑町 大治町 東浦町 南知多町 幸田町　 <三重県> 伊勢市 桑名市 熊野市 いなべ市 志摩市 木曽岬町 東員町 菰野町 多気町 三重明和町 大台町 玉城町 三重大紀町 三重御浜町 紀宝町　 <京都府> 綾部市　 <兵庫県> 市川町 佐用町 新温泉町　 <奈良県> 野迫川村 十津川村 下北山村 上北山村　 <和歌山県> 和歌山市 御坊市 紀美野町 九度山町 湯浅町 有田川町 和歌山美浜町 和歌山日高町 由良町 みなべ町 日高川町 白浜町 上富田町 那智勝浦町 太地町 古座川町 北山村 串本町　 <鳥取県> 米子市 倉吉市 境港市 鳥取若桜町 智頭町 八頭町 琴浦町 日吉津村 鳥取南部町 伯耆町　 <島根県> 松江市 浜田市 出雲市 大田市 雲南市 海士町　 <岡山県> 笠岡市 総社市 浅口市 早島町 矢掛町 鏡野町 勝央町 奈義町 西粟倉村 岡山美咲町　 <広島県> 広島安佐南区 呉市 竹原市 三原市 尾道市 福山市 安芸高田市 江田島市 坂町 大崎上島町　 <山口県> 萩市 柳井市　 <徳島県> 阿南市 吉野川市 阿波市 美馬市 石井町 那賀町 牟岐町 美波町 海陽町 北島町 藍住町 板野町 上板町　 <香川県>	坂出市 観音寺市 東かがわ市 三木町 直島町 宇多津町 綾川町 琴平町 多度津町 まんのう町　 <愛媛県> 松山市　 <高知県> 高知市 安芸市 奈半利町 田野町 芸西村";
@@ -3772,9 +3727,9 @@ function quakeTemplateView(viewId){
     q_epiIdx = 230;
     q_depth = "10";
     q_timeYY = "2016";
-    q_timeMM = "4";
+    q_timeMM = "04";
     q_timeDD = "16";
-    q_timeH = "1";
+    q_timeH = "01";
     q_timeM = "25";
     quakeText[1] = "<山形県> 中山町　 <茨城県> 土浦市 つくば市 茨城鹿嶋市 潮来市 筑西市 坂東市 稲敷市 鉾田市 東海村 五霞町 境町　 <群馬県> 前橋市 高崎市 伊勢崎市 太田市 館林市 渋川市 富岡市 榛東村 玉村町 板倉町 群馬明和町 千代田町 邑楽町　 <埼玉県> さいたま北区 さいたま大宮区 さいたま見沼区 さいたま桜区 さいたま浦和区 さいたま緑区 さいたま岩槻区 川越市 熊谷市 春日部市 羽生市 鴻巣市 越谷市 蕨市 入間市 朝霞市 和光市 久喜市 三郷市 蓮田市 坂戸市 幸手市 鶴ヶ島市 吉川市 白岡市 伊奈町 鳩山町 宮代町 杉戸町 松伏町　 <千葉県> 千葉中央区 千葉花見川区 千葉稲毛区 千葉若葉区 千葉緑区 市川市 船橋市 木更津市 松戸市 野田市 茂原市 東金市 習志野市 鎌ケ谷市 浦安市 四街道市 多古町 一宮町 睦沢町 長生村 白子町　 <東京都> 東京千代田区 東京江東区 東京大田区 東京世田谷区 東京渋谷区 東京杉並区 東京板橋区 東京葛飾区 小平市 国分寺市 清瀬市　 <神奈川県> 横浜中区 川崎川崎区 川崎幸区 川崎高津区 川崎多摩区 川崎宮前区 川崎麻生区 茅ヶ崎市　 <新潟県> 新潟西蒲区 長岡市 三条市 上越市 刈羽村　 <富山県> 富山市 高岡市 魚津市 滑川市 砺波市 小矢部市 南砺市 射水市 舟橋村 上市町 立山町　 <石川県> 金沢市 かほく市 津幡町 能登町　 <福井県> 大野市 勝山市 鯖江市 越前市 福井美浜町 高浜町 福井若狭町　 <山梨県> 甲斐市　 <長野県> 長野市 松本市 上田市 岡谷市 伊那市 中野市 大町市 茅野市 塩尻市 佐久市 千曲市 東御市 安曇野市 軽井沢町 御代田町 立科町 下諏訪町 富士見町 原村 辰野町 箕輪町 飯島町 南箕輪村 宮田村 松川町 長野高森町 阿南町 阿智村 平谷村 根羽村 下條村 泰阜村 喬木村 豊丘村 木曽町 麻績村 生坂村 山形村 筑北村 長野池田町 松川村 木島平村 飯綱町　 <岐阜県> 中津川市 本巣市 郡上市 笠松町 垂井町 神戸町 揖斐川町 大野町　 <静岡県> 静岡葵区 静岡清水区 浜松中区 浜松東区 浜松北区 沼津市 三島市 富士宮市 島田市 焼津市 掛川市 藤枝市 御殿場市 御前崎市 伊豆の国市 牧之原市 静岡清水町　 長泉町 静岡森町　 <愛知県> 名古屋北区 名古屋西区 名古屋天白区 豊川市 豊田市 西尾市 新城市 尾張旭市 日進市 北名古屋市 南知多町　 <三重県> 松阪市 亀山市 志摩市 伊賀市 木曽岬町 三重紀北町　 <滋賀県> 甲賀市　 <京都府> 京都上京区 京都中京区 福知山市 舞鶴市 宇治市 井手町　 <兵庫県> 篠山市 朝来市 宍粟市 佐用町 新温泉町　 <奈良県> 桜井市 五條市 御所市 宇陀市 斑鳩町 上牧町 王寺町 吉野町 大淀町 下市町 黒滝村 天川村 奈良川上村 東吉野村　 <和歌山県> 御坊市 田辺市 新宮市 白浜町 上富田町 太地町 古座川町 北山村 串本町　 <鳥取県> 岩美町 鳥取若桜町 智頭町 八頭町 鳥取日野町 江府町　 <島根県> 西ノ島町　 <岡山県> 岡山中区 総社市 備前市 和気町 鏡野町 西粟倉村　 <鹿児島県> 南種子町";
     quakeText[2] = "<茨城県> 茨城古河市　 <埼玉県> 加須市　 <東京都> 東京足立区　 <神奈川県> 川崎中原区　 <富山県> 氷見市　 <石川県> 小松市 珠洲市 加賀市 羽咋市　 <福井県> 福井市 敦賀市 あわら市 福井坂井市　 <山梨県> 甲府市 南アルプス市 山梨北杜市 笛吹市 中央市 富士川町 昭和町 忍野村 山中湖村 富士河口湖町　 <長野県> 飯田市 諏訪市　 <岐阜県> 岐阜市 大垣市 羽島市 瑞穂市 海津市 養老町 輪之内町 安八町　 <静岡県> 浜松西区 浜松南区 富士市 磐田市 袋井市 湖西市 菊川市　 <愛知県> 名古屋千種区 名古屋東区 名古屋中村区 名古屋中区 名古屋昭和区 名古屋瑞穂区 名古屋熱田区 名古屋中川区 名古屋港区 名古屋南区 名古屋守山区 名古屋緑区 名古屋名東区 豊橋市 一宮市 半田市 愛知津島市 碧南市 刈谷市 安城市 常滑市 稲沢市 東海市 大府市 知多市 知立市 高浜市 豊明市 田原市 愛西市 清須市 弥富市 愛知みよし市 あま市 東郷町 大治町 蟹江町 阿久比町 東浦町 武豊町　 <三重県> 津市 四日市市 鈴鹿市　 <滋賀県> 大津市 彦根市 長浜市 近江八幡市 草津市 守山市 栗東市 野洲市 高島市 東近江市 滋賀日野町 竜王町 愛荘町　 <京都府> 京都下京区 京都南区 京都伏見区 亀岡市 城陽市 向日市 長岡京市 八幡市 京丹後市 南丹市 大山崎町 久御山町 精華町 与謝野町　 <大阪府> 大阪都島区 大阪此花区 大阪西区 大阪天王寺区 大阪東淀川区 大阪東成区 大阪旭区 大阪城東区 大阪阿倍野区 大阪東住吉区 大阪西成区 大阪淀川区 大阪鶴見区 大阪住之江区 大阪平野区 大阪北区 大阪中央区 大阪堺市堺区 大阪堺市中区 大阪堺市東区 大阪堺市西区 大阪堺市南区 大阪堺市美原区 岸和田市 池田市 吹田市 泉大津市 高槻市 貝塚市 守口市 枚方市 茨木市 八尾市 泉佐野市 富田林市 寝屋川市 河内長野市 大阪和泉市 箕面市 柏原市 羽曳野市 門真市 摂津市 高石市 藤井寺市 東大阪市 泉南市 四條畷市 交野市 大阪狭山市 阪南市 忠岡町 熊取町 大阪岬町 大阪太子町　 <兵庫県> 神戸東灘区 神戸兵庫区 神戸長田区 神戸中央区 神戸西区 姫路市 明石市 西宮市 洲本市 芦屋市 伊丹市 相生市 加古川市 赤穂市 宝塚市 三木市 高砂市 川西市 三田市 加東市 たつの市 兵庫稲美町 播磨町 上郡町 兵庫香美町　 <奈良県> 奈良市 大和高田市 大和郡山市 天理市 香芝市 葛城市 安堵町 奈良川西町 三宅町 田原本町 広陵町 河合町　 <和歌山県> 和歌山市 海南市 橋本市 有田市 紀の川市 岩出市 かつらぎ町 九度山町 高野町 湯浅町 和歌山広川町 有田川町 和歌山美浜町 和歌山日高町 和歌山印南町 みなべ町 日高川町　 <鳥取県> 倉吉市 三朝町 日吉津村 鳥取南部町 伯耆町 日南町　 <島根県> 安来市 江津市 雲南市 奥出雲町 飯南町 川本町 島根美郷町 邑南町 知夫村 隠岐の島町　 <岡山県> 岡山北区 岡山東区 津山市 笠岡市 井原市 高梁市 新見市 瀬戸内市 赤磐市 美作市 浅口市 早島町 矢掛町　 <広島県> 広島西区 広島安芸区 福山市 広島府中市 広島三次市 庄原市 安芸高田市 北広島町 世羅町 神石高原町　 <山口県> 光市 和木町 上関町 田布施町　 <徳島県> 鳴門市 美馬市 徳島三好市 勝浦町 上勝町 佐那河内村 神山町 那賀町 牟岐町 美波町 海陽町 つるぎ町 東みよし町　 <香川県>	丸亀市 善通寺市 さぬき市 土庄町 三木町 直島町 宇多津町 綾川町　 <愛媛県> 新居浜市　 <高知県> 室戸市 須崎市 東洋町 安田町 北川村 馬路村 本山町 大豊町 大川村 いの町 仁淀川町 中土佐町 佐川町 四万十町 大月町　 <長崎県>	五島市 新上五島町　 <鹿児島県> 志布志市 三島村 錦江町 南大隅町 屋久島町";
@@ -3796,7 +3751,7 @@ function quakeTemplateView(viewId){
     q_epiIdx = 230;
     q_depth = "10";
     q_timeYY = "2016";
-    q_timeMM = "4";
+    q_timeMM = "04";
     q_timeDD = "14";
     q_timeH = "21";
     q_timeM = "26";
@@ -3820,7 +3775,7 @@ function quakeTemplateView(viewId){
     q_epiIdx = 286;
     q_depth = "590";
     q_timeYY = "2015";
-    q_timeMM = "5";
+    q_timeMM = "05";
     q_timeDD = "30";
     q_timeH = "20";
     q_timeM = "24";
@@ -3844,9 +3799,9 @@ function quakeTemplateView(viewId){
     q_epiIdx = 301;
     q_depth = "590";
     q_timeYY = "2013";
-    q_timeMM = "5";
+    q_timeMM = "05";
     q_timeDD = "24";
-    q_timeH = "5";
+    q_timeH = "05";
     q_timeM = "45";
     quakeText[1] = "<北海道> 札幌中央区 札幌北区 札幌東区 札幌白石区 札幌西区 札幌厚別区 札幌手稲区 札幌清田区 小樽市 帯広市 苫小牧市 江別市 千歳市 胆振伊達市 石狩市 当別町 檜山江差町 乙部町 倶知安町 岩内町 赤井川村 長沼町 美深町 上川中川町 遠別町 中頓別町 礼文町 斜里町 白老町 厚真町 安平町 浦河町 様似町 新ひだか町 十勝清水町 十勝大樹町 広尾町 本別町 厚岸町 弟子屈町　 <青森県> 弘前市 黒石市 平内町 鰺ヶ沢町 深浦町 西目屋村 六ヶ所村 風間浦村 三戸町 田子町 青森南部町 新郷村　 <岩手県> 北上市 遠野市 一関市 二戸市 雫石町 西和賀町 普代村　 <宮城県> 仙台青葉区 仙台宮城野区 仙台若林区 仙台太白区 仙台泉区 白石市 名取市 角田市 東松島市 蔵王町 宮城川崎町 亘理町 山元町 七ヶ浜町 大郷町 富谷町 大衡村 色麻町 宮城加美町　 <秋田県> 男鹿市 湯沢市 鹿角市 潟上市 北秋田市 仙北市 小坂町 上小阿仁村 藤里町 八峰町 五城目町 八郎潟町 大潟村 秋田美郷町 羽後町 東成瀬村　 <山形県> 米沢市 新庄市 寒河江市 上山市 天童市 尾花沢市 南陽市 山辺町 西川町 大江町 大石田町 山形金山町 舟形町 真室川町 大蔵村 鮭川村 戸沢村 高畠町 山形川西町 山形小国町　 <福島県> 福島市 郡山市 西会津町 猪苗代町 浪江町　 <茨城県> 筑西市　 <埼玉県> さいたま岩槻区 加須市 春日部市 戸田市 久喜市 宮代町　 <東京都> 東京大田区 東京足立区 町田市 青ヶ島村　 <神奈川県> 横浜中区 湯河原町　 <新潟県> 新潟東区 新潟中央区 新潟秋葉区 新潟西区 新潟西蒲区 長岡市 三条市 新発田市 加茂市 見附市 五泉市 上越市 阿賀野市 佐渡市 南魚沼市 胎内市 阿賀町 刈羽村　 <石川県> 輪島市 珠洲市 穴水町 能登町　 <長野県> 諏訪市 長野南牧村 御代田町　 <岐阜県> 中津川市　 <静岡県> 静岡清水区 沼津市 富士市 御殿場市 伊豆市 伊豆の国市 静岡清水町　 <滋賀県> 近江八幡市　 <兵庫県> 豊岡市　 <鳥取県> 鳥取市　 <島根県> 出雲市　 <広島県> 呉市 東広島市 江田島市 府中市　 <徳島県> 吉野川市 石井町　 <佐賀県> 佐賀市 神崎市 みやき町 白石町　 <大分県> 大分市 佐伯市　 <鹿児島県> 錦江町";
     quakeText[2] = "<北海道> 函館市 釧路市 岩見沢市 稚内市 根室市 渡島北斗市 新篠津村 上ノ国町 天塩町 浜頓別町 豊富町 利尻富士町 幌延町 新冠町 浦幌町 釧路町 浜中町 標茶町 白糠町 別海町 標津町　 <青森県> 青森市 八戸市 五所川原市 十和田市 三沢市 むつ市 つがる市 平川市 今別町 蓬田村 外ヶ浜町 藤崎町 田舎館村 板柳町 青森鶴田町 中泊町 野辺地町 七戸町 六戸町 横浜町 東北町 おいらせ町 大間町 東通村 五戸町 階上町　 <岩手県> 盛岡市 花巻市 久慈市 八幡平市 奥州市 矢巾町 金ケ崎町 野田村　 <宮城県> 石巻市 岩沼市 登米市 栗原市 大崎市 大河原町 丸森町 松島町 利府町 涌谷町 宮城美里町　 <秋田県> 能代市 横手市 大館市 由利本荘市 大仙市 にかほ市 三種町 井川町　 <山形県> 鶴岡市 酒田市 村山市 中山町 河北町 最上町 白鷹町 三川町 庄内町 遊佐町　 <福島県> 会津坂下町　 <新潟県> 村上市";
@@ -3868,7 +3823,7 @@ function quakeTemplateView(viewId){
     q_epiIdx = 343;
     q_depth = "--";
     q_timeYY = "2011";
-    q_timeMM = "3";
+    q_timeMM = "03";
     q_timeDD = "11";
     q_timeH = "14";
     q_timeM = "46";
