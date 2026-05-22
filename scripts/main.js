@@ -1522,10 +1522,10 @@ const Routines = {
       document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#ffffff";
       /* if (!document.getElementsByName("scrollfix")[viewingTextIndex].checked) */ viewingTextIndex++;
       if (viewingTextIndex == 5) viewingTextIndex = 0;
-      for (let i=q_currentShindo; i>-1; i--){
+      for (let i = q_currentShindo; i > -1; i--){
         if (quakeText[i] != ""){ q_currentShindo = i; break; }
       }
-      document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#ffff60";
+      if (viewMode === 0) document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#ffff60";
     }
     if (q_currentShindo < 0){
       q_currentShindo = q_maxShindo;
