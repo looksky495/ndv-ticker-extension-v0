@@ -298,7 +298,7 @@ body.fullview img.settings-icon {
   align-items: flex-end;
 }
 #menu .eiList {
-  height: 146px;
+  height: 156px;
   width: 466px;
   background-color: #c3c3c3;
   border: #000 1px solid;
@@ -308,9 +308,6 @@ body.fullview img.settings-icon {
 }
 #menu .eiList::-webkit-scrollbar {
   display: none;
-}
-#menu .eiList-button:active {
-  color: #b42222;
 }
 #menu .eiList .eiList-button {
   width: 466px;
@@ -338,31 +335,18 @@ body.fullview img.settings-icon {
 
 #menu .eiwind {
   color: #ffff;
-  height: 120px; width: 400px;
+  height: 156px; width: 400px;
   background-color: #000b;
   border: #000 1px solid;
   overflow: scroll;
   font-size: 14px;
+  backdrop-filter: blur(3px);
 }
 #menu .eiwind::-webkit-scrollbar {
   display: none;
 }
 #menu .eiwind.SI {
-  background-color: #aa00feb8;
-}
-
-#menu .eiTitle {
-  color: #ffff;
-  height: 24px; width: 400px;
-  background-color: #3131bd;
-  border: #000 1px solid;
-  overflow-y: hidden;
-  overflow-x: auto;
-  white-space: nowrap;
-  font-size: 16px;
-}
-#menu .eiTitle::-webkit-scrollbar {
-  display: none;
+  background-color: #7a00b7b8;
 }
 
 #menu .tsunamiList {
@@ -533,13 +517,4 @@ th.sound_quake_type[data-type="major"] {
 }
 #speech-vol-view {
   margin-left: 15px;
-}
-
-@keyframes animation_current_quake_view {
-  0%, 100% {
-    color: #000000;
-  }
-  50% {
-    color: #ffffff00;
-  }
 }
