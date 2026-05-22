@@ -1395,20 +1395,9 @@ const Routines = {
     context.fillRect(0, 0, 1080, 60);
     if (!(t_viewType === 2 && !t_Cancelled)){
       context.font = "28px " + FontFamilies.sans;
-      switch (textCount){
-        case 5:
-          context.fillStyle = mscale===1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
-          context.fillText(directTexts[5 + (viewingTextIndex+4)%textCount], 895, 50, 185);
-        case 4:
-          context.fillStyle = mscale===1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
-          context.fillText(directTexts[5 + (viewingTextIndex+3)%textCount], 685, 50, 185);
-        case 3:
-          context.fillStyle = mscale===1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
-          context.fillText(directTexts[5 + (viewingTextIndex+2)%textCount], 475, 50, 185);
-        case 2:
-          context.fillStyle = mscale===1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
-          context.fillText(directTexts[5 + (viewingTextIndex+1)%textCount], 265, 50, 185);
-          break;
+      context.fillStyle = mscale === 1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
+      for (let i = 1; i < textCount; i++){
+        context.fillText(directTexts[5 + (viewingTextIndex + i)%textCount], 50 + 210 * i, 50, 190);
       }
     }
     context.fillStyle = colorScheme[colorThemeMode][3][mscale];
@@ -1438,14 +1427,11 @@ const Routines = {
     //context.font = '40px "游ゴシック Medium","Yu Gothic Medium","游ゴシック体",YuGothic,sans-serif';
     //context.font = '40px "Hiragino Sans W3", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif';
     // let performDrawStartAt = performance.now() * 1000;
-    let TextWidth;
-    switch (viewMode) {
-      case 0:
-        TextWidth = -(strWidth(directTexts[viewingTextIndex])) - 200;
-        break;
-      default:
-        TextWidth = strWidth(quakeText[q_currentShindo]) * -1;
-        break;
+    let textWidth;
+    if (viewMode === 0){
+      textWidth = -(strWidth(directTexts[viewingTextIndex])) - 200;
+    } else {
+      textWidth = strWidth(quakeText[q_currentShindo]) * -1;
     }
 
     const targetTime = getAdjustedDate();
@@ -1529,7 +1515,7 @@ const Routines = {
       }
     }
     //CB to if((uptimeCount%))
-    if (TextWidth > textOffsetX){
+    if (textWidth > textOffsetX){
       textOffsetX = 1200;
       q_currentShindo--;
       Routines.isDrawNormalTitle = true;
@@ -4153,9 +4139,9 @@ const byteToString = byte => {
   });
   await speechBase.init(audioAPI.context, audioAPI.masterGain);
 
-  // モジュールらの読み込み
-  const test = await import("../modules/test.mjs");
-  test.test();
+  // // モジュールらの読み込み
+  // const test = await import("../modules/test.mjs");
+  // test.test();
 })();
 
 function changeTextSpeed (value){
