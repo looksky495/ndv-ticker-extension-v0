@@ -1,12 +1,7 @@
 'use strict';
 
-// import easyXhr from "./modules/easyXhr.js";
-
-// Release Note: アプデ前にアーカイブを取ること (2021-07-29から)
-// Release Note: terser -c -m -o main.min.js -- main.js
-// Release Note: 必ずバージョンを更新すること
 // Release Note:
-//  eewLocalhostStreamPortを0にすること
+//  eewLocalhostStreamPort を 0 にすること
 //  manifest.json
 //  ホームページ
 //  Google Apps Script
