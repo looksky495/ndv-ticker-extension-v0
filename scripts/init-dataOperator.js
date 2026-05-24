@@ -244,10 +244,10 @@ const it = window.DataOperator = {
   earthquake: {
     url_list: "https://www.jma.go.jp/bosai/quake/data/list.json",
     tracker_list: new TrafficTracker("JMA / Quake / list.json", false),
-    
+
     shindo_list: {"1": 1, "2": 2, "3": 3, "4": 4, "震度５弱以上未入電": 5, "5-": 6, "5+": 7, "6-": 8, "6+": 9, "7": 10},
     magnitude_not_a_number: {"M不明": -901, "M8を超える巨大地震": -902, "Ｍ不明": -901, "Ｍ８を超える巨大地震": -902},
-    
+
     initialized: false, // 初期化時にだけfalse
     stockedJsonList: [],
     /** @type {Record<string, string[]>} */
@@ -256,26 +256,30 @@ const it = window.DataOperator = {
       const summaryBackcolor = ["#fff", "#f2f2ff", "#68c8fd", "#869ffd", "#94f481", "#555", "#faf500", "#ffc27c", "#d12000", "#a50021", "#85004d"];
       const summaryTextColor = ["#444", "#333", "#333", "#333", "#333", "#fff", "#333", "#333", "#fff", "#fff", "#fff"];
       const intensityText = ["不明", "1", "2", "3", "4", "不明", "5弱", "5強", "6弱", "6強", "7"];
-      
-      let isSummaryUpdated = false;
+
+      let isUpdateAvailable = false;
       let isNewEvent = false;
       /** @type {QuakeList.QuakeList} */
-      const list = (await fetch(this.url_list + "?_=" + Date.now()).then(res => res.json()));
-      for (const info of list){
-        if (this.stockedJsonList.includes(info.json)) continue;
-        if (!(info.json.includes("VXSE51") || 
-              info.json.includes("VXSE52") ||
-              info.json.includes("VXSE5k") ||
-              info.json.includes("VXSE5e") ||
-              info.json.includes("VXSE61"))) continue;
+      const list = (await fetch(this.url_list, {
+        cache: "no-cache"
+      }).then(res => res.json()));
+      for (const info of list.toReversed()){
+        if (!(info.json.includes("VXSE51") ||
+          info.json.includes("VXSE52") ||
+          info.json.includes("VXSE5k") ||
+          info.json.includes("VXSE5e") ||
+          info.json.includes("VXSE61"))) continue;
         if (info.ift.includes("_K")) continue; // 訓練情報
-        this.stockedJsonList.push(info.json);
         info.isTargetData = true;
-        
+        if (this.stockedJsonList.includes(info.json)) continue;
+        this.stockedJsonList.push(info.json);
+
+        if (this.initialized) console.log("New file detected: ", info.json);
+
         // 分類
         if (!Object.hasOwn(this.eventSource, info.eid)) this.eventSource[info.eid] = [];
-        this.eventSource[info.eid].unshift(info.json);
-        
+        this.eventSource[info.eid].push(info.json);
+
         // summary 作成
         if (!Object.hasOwn(this.quakeData, info.eid)){
           this.quakeData[info.eid] = {
@@ -290,45 +294,42 @@ const it = window.DataOperator = {
             }
           };
         }
-        if (this.quakeData[info.eid].summary.label.epicenter === "" && info.anm){
+        // detail は常に最新の情報を取得するため、初期化しておく
+        this.quakeData[info.eid].detail = null;
+
+        const arrivalTime = new Date(info.at);
+        this.quakeData[info.eid].summary.label.time = `${arrivalTime.getDate()}日${arrivalTime.getHours()}時${arrivalTime.getMinutes()}分 ${info.ift.includes("VXSE5e") ? "検知" : "発生"}`;
+        isUpdateAvailable = true;
+
+        if (info.anm){
           this.quakeData[info.eid].summary.label.epicenter = info.anm;
-          isSummaryUpdated = true;
         }
-        if (this.quakeData[info.eid].summary.label.intensity === ""){
-          if (info.maxi){
-            const intensityIndex = this.shindo_list[info.maxi] ?? 0;
-            this.quakeData[info.eid].summary.label.intensity = "最大震度" + intensityText[intensityIndex];
-            this.quakeData[info.eid].summary.backcolor = summaryBackcolor[intensityIndex];
-            this.quakeData[info.eid].summary.textcolor = summaryTextColor[intensityIndex];
-            isSummaryUpdated = true;
-          } else if (info.json.includes("VXSE5e")){
-            this.quakeData[info.eid].summary.label.intensity = "海外の地震";
-            this.quakeData[info.eid].summary.backcolor = summaryBackcolor[0];
-            this.quakeData[info.eid].summary.textcolor = summaryTextColor[0];
-            isSummaryUpdated = true;
-          }
-        }
-        if (this.quakeData[info.eid].summary.label.time === ""){
-          const arrivalTime = new Date(info.at);
-          this.quakeData[info.eid].summary.label.time = `${arrivalTime.getDate()}日${arrivalTime.getHours()}時${arrivalTime.getMinutes()}分 検知`;
-          isSummaryUpdated = true;
+        if (info.maxi){
+          const intensityIndex = this.shindo_list[info.maxi] ?? 0;
+          this.quakeData[info.eid].summary.label.intensity = "最大震度" + intensityText[intensityIndex];
+          this.quakeData[info.eid].summary.backcolor = summaryBackcolor[intensityIndex];
+          this.quakeData[info.eid].summary.textcolor = summaryTextColor[intensityIndex];
+        } else if (info.json.includes("VXSE5e")){
+          this.quakeData[info.eid].summary.label.intensity = "海外の地震";
+          this.quakeData[info.eid].summary.backcolor = summaryBackcolor[0];
+          this.quakeData[info.eid].summary.textcolor = summaryTextColor[0];
         }
       }
-      
-      if (isSummaryUpdated) this.onSummaryUpdated(Array.from(new Set(list.filter(entry => entry.isTargetData).map(entry => entry.eid))).map(eid => {
+
+      if (isUpdateAvailable) this.onSummaryUpdated(Array.from(new Set(list.filter(entry => entry.isTargetData).map(entry => entry.eid))).map(eid => {
         return { summary: this.quakeData[eid]?.summary, eventId: eid };
       }));
-      if (isNewEvent) this.onActivated(list[0].eid, this.quakeData[list[0].eid]);
+      if (this.initialized && isUpdateAvailable) this.activate(list[0].eid).then(result => console.log("Activated event " + list[0].eid + ": " + (result ? "success" : "failure")));
       this.initialized = true;
     },
-    
+
     /**
      * @param {string} eventId Event ID
      */
     async activate (eventId){
       if (!Object.hasOwn(this.quakeData, eventId)){
         return false;
-      } else if (!Object.hasOwn(this.quakeData[eventId], "detail")){
+      } else if (this.quakeData[eventId].detail === null){
         // 情報の取得を行う
         this.quakeData[eventId].detail = {
           summaryText: {
@@ -337,7 +338,8 @@ const it = window.DataOperator = {
             epicenter: ["", ""],
             magnitude: ["", ""],
             depth: ["", ""],
-            comment: ["", ""]
+            comment: ["", ""],
+            freeFormComment: ""
           },
           shindoOneline: new Array(11).fill(""),
           shindoMultiline: "",
@@ -350,7 +352,7 @@ const it = window.DataOperator = {
           magnitude: "--",
           speechList: []
         };
-        
+
         // 必要なデータを探す（無駄にリクエストしないために）
         const necessarySources = [];
         let hasEpicenter = false, hasShindo = false;
@@ -379,11 +381,11 @@ const it = window.DataOperator = {
           else if (url.includes("VXSE61")) await this.vxse61(url);
         }
       }
-      
+
       this.onActivated(eventId, this.quakeData[eventId].detail);
       return true;
     },
-    
+
     /**
      * @private
      * @param {string} coordinate
@@ -398,10 +400,10 @@ const it = window.DataOperator = {
       const data = await fetch("https://www.jma.go.jp/bosai/quake/data/" + url).then(res => res.json());
       const eventId = data.Head.EventID;
       const detail = this.quakeData[eventId].detail;
-      
+
       detail.maxShindo = this.shindo_list[data.Body.Intensity.Observation.MaxInt] ?? 0;
-      detail.timeStr = new Date(data.Head.TargetDateTime).strftime("%Y-%m-%d %H:%M:%S");
-      
+      detail.timeStr = new Date(data.Head.TargetDateTime).strftime("%Y-%m-%d %H:%M");
+
       const shindoList = new Array(11).fill(0).map(() => ([])); // 震度速報は都道府県別にしない
       for (const pref of data.Body.Intensity.Observation.Pref){
         for (const area of pref.Area){
@@ -409,15 +411,15 @@ const it = window.DataOperator = {
           shindoList[maxIntIndex].push(area.Name);
         }
       }
-      
+
       detail.shindoOneline = shindoList.map((areaList, index) => {
         if (index === 0) return ""; // 地震に関する基本情報をまとめる場所
 
         return areaList.join("　");
       });
-      detail.shindoMultiline = shindoList.map((areaList, index) => {
-        const intensityLabel = ["不明", "震度１", "震度２", "震度３", "震度４", "震度５弱以上と推定", "震度５弱", "震度５強", "震度６弱", "震度６強", "震度７"][index];
-        
+      detail.shindoMultiline = shindoList.reverse().map((areaList, index) => {
+        const intensityLabel = ["震度７", "震度６強", "震度６弱", "震度５強", "震度５弱", "震度５弱以上と推定", "震度４", "震度３", "震度２", "震度１", "不明"][index]; // 逆順にするのを考慮
+
         if (Object.keys(areaList).length === 0) return "";
         return `［${intensityLabel}］\n　` + areaList.map(area => `${area}`).join("　");
       }).filter(Boolean).join("\n");
@@ -426,8 +428,7 @@ const it = window.DataOperator = {
       detail.speechList = [];
 
       detail.shindoOneline[0] = this.makeSummaryText(data.Head.EventID, data, ["time", "intensity", "comment"]);
-      detail.shindoMultiline += "\n\n" + detail.summaryText.comment[0];
-      
+
       return detail;
     },
     async vxse52 (url, updateComment = true){ // 震源情報
@@ -435,18 +436,18 @@ const it = window.DataOperator = {
       const data = await fetch("https://www.jma.go.jp/bosai/quake/data/" + url).then(res => res.json());
       const eventId = data.Head.EventID;
       const detail = this.quakeData[eventId].detail;
-      
-      detail.timeStr = new Date(data.Body.Earthquake.OriginTime).strftime("%Y-%m-%d %H:%M:%S");
+
+      detail.timeStr = new Date(data.Body.Earthquake.OriginTime).strftime("%Y-%m-%d %H:%M");
       detail.epicenterIndex = epicenter_list[12].indexOf(data.Body.Earthquake.Hypocenter.Area.Code);
       detail.epicenterName = this.makeEpicenterText(data.Body.Earthquake.Hypocenter);
       const coordinates = this.parseCoordinate(data.Body.Earthquake.Hypocenter.Area.Coordinate_WGS || data.Body.Earthquake.Hypocenter.Area.Coordinate);
       detail.depthStr = coordinates.length === 2 ? "--" : (coordinates[2] === 0 ? "ごく浅い" : (coordinates[2] === -700000 ? "深い" : (-coordinates[2] / 1000) + ""));
-      detail.magnitude = (data.Body.Earthquake.Magnitude === "Ｍ不明") ? "--" : (data.Body.Earthquake.Magnitude === "Ｍ８を超える巨大地震") ? "8+" : data.Body.Earthquake.Magnitude;
+      detail.magnitude = (data.Body.Earthquake.Magnitude === "Ｍ不明") ? "" : (data.Body.Earthquake.Magnitude === "Ｍ８を超える巨大地震") ? "8+" : data.Body.Earthquake.Magnitude;
 
       detail.shindoOneline[0] = this.makeSummaryText(data.Head.EventID, data, ["time", "epicenter", "magnitude", "depth", ...(
         updateComment ? ["comment"] : []
       )]);
-      
+
       return detail;
     },
     async vxse5k (url){ // 地震情報
@@ -454,8 +455,8 @@ const it = window.DataOperator = {
       const data = await fetch("https://www.jma.go.jp/bosai/quake/data/" + url).then(res => res.json());
       const eventId = data.Head.EventID;
       const detail = this.quakeData[eventId].detail;
-      
-      detail.timeStr = new Date(data.Body.Earthquake.OriginTime).strftime("%Y-%m-%d %H:%M:%S");
+
+      detail.timeStr = new Date(data.Body.Earthquake.OriginTime).strftime("%Y-%m-%d %H:%M");
       detail.epicenterIndex = epicenter_list[12].indexOf(data.Body.Earthquake.Hypocenter.Area.Code);
       detail.epicenterName = this.makeEpicenterText(data.Body.Earthquake.Hypocenter);
       const coordinates = this.parseCoordinate(data.Body.Earthquake.Hypocenter.Area.Coordinate_WGS || data.Body.Earthquake.Hypocenter.Area.Coordinate);
@@ -464,7 +465,7 @@ const it = window.DataOperator = {
       detail.isSokuho = false;
       if (data.Body.Intensity?.Observation){
         detail.maxShindo = this.shindo_list[data.Body.Intensity.Observation.MaxInt];
-        
+
         const prefShindoList = new Array(11).fill(0).map(() => ({}));
         for (const pref of data.Body.Intensity.Observation.Pref){
           for (const area of pref.Area){
@@ -478,7 +479,7 @@ const it = window.DataOperator = {
             }
           }
         }
-        
+
         detail.shindoOneline = prefShindoList.map((prefShindo, index) => {
           if (index === 0) return ""; // 地震に関する基本情報をまとめる場所
 
@@ -486,9 +487,9 @@ const it = window.DataOperator = {
             return `［${prefName}］ ${areas.join(" ")}`;
           }).join("　　");
         });
-        detail.shindoMultiline = prefShindoList.map((prefShindo, index) => {
-          const intensityLabel = ["不明", "震度１", "震度２", "震度３", "震度４", "震度５弱以上と推定", "震度５弱", "震度５強", "震度６弱", "震度６強", "震度７"][index];
-          
+        detail.shindoMultiline = prefShindoList.reverse().map((prefShindo, index) => {
+          const intensityLabel = ["震度７", "震度６強", "震度６弱", "震度５強", "震度５弱", "震度５弱以上と推定", "震度４", "震度３", "震度２", "震度１", "不明"][index]; // 逆順にするのを考慮
+
           if (Object.keys(prefShindo).length === 0) return "";
           return `［${intensityLabel}］\n` + Object.entries(prefShindo).map(([prefName, areas]) => {
             return `　${prefName}：${areas.join(" ")}`;
@@ -497,33 +498,32 @@ const it = window.DataOperator = {
       } else {
         detail.maxShindo = 0;
       }
-      
+
       detail.shindoOneline[0] = this.makeSummaryText(data.Head.EventID, data, ["time", "intensity", "epicenter", "magnitude", "depth", "comment"]);
-      
+
       return detail;
     },
     async vxse5e (url){ // 遠地地震に関する情報
-      /** @type {JMAQuake.VXSE5e} */
       const detail = await this.vxse52(url); // 使うデータはほぼ同じだから妥協（あんまり良くないけど）
-      
+
       detail.isSokuho = false; // 速報ではない
+      detail.depthStr = ""; //　空白にすると、非表示になる
       return detail;
     },
     async vxse61 (url){ // 震源要素更新
-      /** @type {JMAQuake.VXSE61} */
       const detail = await this.vxse52(url, false); // 使うデータはほぼ同じだから妥協（あんまり良くないけど！！！！！！！！）
-      
+
       detail.isSokuho = false; // 速報ではない
       return detail;
     },
-    
+
     /** @param {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter} hypocenter */
     makeEpicenterText (hypocenter){
       return `${hypocenter.Area.Name}${hypocenter.Area.DetailedName ? `（${hypocenter.Area.DetailedName}）`: ""}${hypocenter.Area.NameFromMark ? `（${hypocenter.Area.NameFromMark}）`: ""}`
     },
-    
+
     /**
-     * @param {string} eventId 
+     * @param {string} eventId
      * @param {JMAQuake.Report} data
      * @param {("time" | "intensity" | "epicenter" | "magnitude" | "depth" | "comment")[]} types 例: ["time", "intensity"] など、更新する summaryText の種類を指定する。指定された種類の情報が data に存在しない場合は、その種類の summaryText は更新されない。
      * @returns {string} 生成されたテキストぜんぶ
@@ -533,107 +533,129 @@ const it = window.DataOperator = {
       const enMonthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const jaIntensity = {"1": " 1 ", "2": " 2 ", "3": " 3 ", "4": " 4 ", "5-": " 5 弱", "5+": " 5 強", "6-": " 6 弱", "6+": " 6 強", "7": "7"};
       const enIntensity = {"1": "1", "2": "2", "3": "3", "4": "4", "5-": "lower 5", "5+": "upper 5", "6-": "lower 6", "6+": "upper 6", "7": "7"};
-      
+
       const detail = this.quakeData[eventId].detail;
-      
-      if (types.includes("time")){
-        if (data.Body.Earthquake){
-          const originTime = new Date(data.Body.Earthquake.OriginTime);
-          const year = originTime.getFullYear();
-          const month = originTime.getMonth() + 1;
-          const date = originTime.getDate();
-          const hours = originTime.getHours();
-          const minutes = originTime.getMinutes();
-          
-          detail.summaryText.time = [
-            `${month} 月 ${date} 日 ${hours} 時 ${minutes} 分頃、`,
-            `at around ${(hours + 11) % 12 + 1}:${("0"+minutes).slice(-2)} ${hours >= 12 ? "p.m." : "a.m."} on ${enMonthShort[month-1]} ${date} (UTC+9).`
-          ];
-        }
-      }
-      if (types.includes("intensity")){
-        if (data.Body.Intensity?.Observation){
-          /** @type {QT.IntensityObs} */
-          const intensity = data.Body.Intensity.Observation;
-          const maxInt = intensity.MaxInt;
-          detail.summaryText.intensity = [
-            `最大震度${jaIntensity[maxInt]}を観測する${ (maxInt[0] === "6" || maxInt[0] === "7") ? "非常に強い" : (maxInt[0] === "5" ? "強い" : ( maxInt[0] === "4" ? "やや強い" : ""))}地震が発生しました。`,
-            `registered a maximum seismic intensity of ${enIntensity[maxInt]} in parts of Japan.`
-          ];
-        }
-      }
-      if (types.includes("epicenter")){
-        if (data.Body.Earthquake?.Hypocenter){
-          /** @type {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter} */
-          const hypocenter = data.Body.Earthquake.Hypocenter;
-          detail.summaryText.epicenter = [
-            `震源は${this.makeEpicenterText(hypocenter)}、`,
-            hypocenter.Area.enName
-          ];
-        }
-      }
-      if (types.includes("magnitude")){
-        if (data.Body.Earthquake?.Magnitude){
-          /** @type {QT.Earthquake} */
-          const earthquake = data.Body.Earthquake;
-          if (earthquake.Magnitude === "Ｍ不明"){
-            detail.summaryText.magnitude = [
-              "マグニチュードは不明、",
-              "An unknown magnitude earthquake struck"
-            ];
-          } else if (earthquake.Magnitude === "Ｍ８を超える巨大地震"){
-            detail.summaryText.magnitude = [
-              "マグニチュード 8 を超える巨大地震です。",
-              "An enormous earthquake with a magnitude of over 8 struck"
-            ];
-          } else {
-            detail.summaryText.magnitude = [
-              `マグニチュードは ${earthquake.Magnitude}、`,
-              `A magnitude ${earthquake.Magnitude} earthquake struck`
+      const isVolcanoEruption = (data.Body.Comments.FreeFormComment || "").includes("大規模な噴火が発生");
+
+      if (isVolcanoEruption){
+        detail.summaryText.comment = [
+          data.Body.Comments.FreeFormComment.replace(/\n（注.*/g, ""),
+          ""
+        ];
+      } else {
+        if (types.includes("time")){
+          if (data.Body.Earthquake){
+            const originTime = new Date(data.Body.Earthquake.OriginTime);
+            const year = originTime.getFullYear();
+            const month = originTime.getMonth() + 1;
+            const date = originTime.getDate();
+            const hours = originTime.getHours();
+            const minutes = originTime.getMinutes();
+
+            detail.summaryText.time = [
+              `${month} 月 ${date} 日 ${hours} 時 ${minutes} 分頃、`,
+              `at around ${(hours + 11) % 12 + 1}:${("0"+minutes).slice(-2)} ${hours >= 12 ? "p.m." : "a.m."} on ${enMonthShort[month-1]} ${date} (UTC+9).`
             ];
           }
         }
-      }
-      if (types.includes("depth")){
-        if (data.Body.Earthquake?.Hypocenter){
-          /** @type {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter | import("../modules/jmaquake/report-vxse61").VXSE61.Hypocenter} */
-          const hypocenter = data.Body.Earthquake.Hypocenter;
-          const coordinates = this.parseCoordinate(hypocenter.Area.Coordinate_WGS || hypocenter.Area.Coordinate);
-          if (coordinates[2]){
-            if (coordinates[2] === 0){
-              detail.summaryText.depth = [
-                "震源の深さはごく浅いです。",
-                "The quake, which occurred at a very shallow depth,"
-              ];
-            } else if (coordinates[2] === -700000){
-              detail.summaryText.depth = [
-                "震源の深さは 700 km 以上です。",
-                "The quake, which occurred at a depth of over 700 kilometers,"
+        if (types.includes("intensity")){
+          if (data.Body.Intensity?.Observation){
+            /** @type {QT.IntensityObs} */
+            const intensity = data.Body.Intensity.Observation;
+            const maxInt = intensity.MaxInt;
+
+            const jaText = `最大震度${jaIntensity[maxInt]}を観測する${ (maxInt[0] === "6" || maxInt[0] === "7") ? "非常に強い" : (maxInt[0] === "5" ? "強い" : ( maxInt[0] === "4" ? "やや強い" : ""))}地震が発生しました。`;
+            if (data.Body.Earthquake){
+              detail.summaryText.intensity = [
+                jaText,
+                `registered a maximum seismic intensity of ${enIntensity[maxInt]} in parts of Japan.`
               ];
             } else {
-              detail.summaryText.depth = [
-                `震源の深さは ${-coordinates[2] / 1000} km です。`,
-                `The quake, which occurred at a depth of ${-coordinates[2] / 1000} kilometers,`
+              if (!detail.summaryText.depth[1]) detail.summaryText.depth = [
+                "",
+                "The quake"
+              ]; // あとで VXSE52 が来て変わることを想定　VXSE52 のあとで VXSE51 が来ても大丈夫なように条件を入れる
+              detail.summaryText.intensity = [
+                jaText,
+                `registered a maximum seismic intensity of ${enIntensity[maxInt]} in parts of Japan has just occurred.`
               ];
             }
-          } else {
-            detail.summaryText.depth = [
-              "震源の深さは不明です。",
-              "The quake"
+          }
+        }
+        if (types.includes("epicenter")){
+          if (data.Body.Earthquake?.Hypocenter){
+            /** @type {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter} */
+            const hypocenter = data.Body.Earthquake.Hypocenter;
+            detail.summaryText.epicenter = [
+              `震源は${this.makeEpicenterText(hypocenter)}、`,
+              hypocenter.Area.enName
             ];
           }
         }
-      }
-      if (types.includes("comment")){
-        if (data.Body.Comments.ForecastComment){
-          const commentCodes = data.Body.Comments.ForecastComment.Code.split(" ");
-          detail.summaryText.comment = [
-            data.Body.Comments.ForecastComment.Text.replaceAll("\n", "　　") + (data.Body.Comments.FreeFormComment || ""),
-            commentCodes.map(code => AdditionalComments[code] ? AdditionalComments[code].en : "").filter(text => text).join(" ")
-          ];
+        if (types.includes("magnitude")){
+          if (data.Body.Earthquake?.Magnitude){
+            /** @type {QT.Earthquake} */
+            const earthquake = data.Body.Earthquake;
+            if (earthquake.Magnitude === "Ｍ不明"){
+              detail.summaryText.magnitude = [
+                "マグニチュードは不明、",
+                "An unknown magnitude earthquake struck"
+              ];
+            } else if (earthquake.Magnitude === "Ｍ８を超える巨大地震"){
+              detail.summaryText.magnitude = [
+                "マグニチュード 8 を超える巨大地震です。",
+                "An enormous earthquake with a magnitude of over 8 struck"
+              ];
+            } else {
+              detail.summaryText.magnitude = [
+                `マグニチュードは ${earthquake.Magnitude}、`,
+                `A magnitude ${earthquake.Magnitude} earthquake struck`
+              ];
+            }
+          }
+        }
+        if (types.includes("depth")){
+          if (data.Body.Earthquake?.Hypocenter){
+            /** @type {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter | import("../modules/jmaquake/report-vxse61").VXSE61.Hypocenter} */
+            const hypocenter = data.Body.Earthquake.Hypocenter;
+            const coordinates = this.parseCoordinate(hypocenter.Area.Coordinate_WGS || hypocenter.Area.Coordinate);
+            if (coordinates[2]){
+              if (coordinates[2] === 0){
+                detail.summaryText.depth = [
+                  "震源の深さはごく浅いです。",
+                  "The quake, which occurred at a very shallow depth,"
+                ];
+              } else if (coordinates[2] === -700000){
+                detail.summaryText.depth = [
+                  "震源の深さは 700 km 以上です。",
+                  "The quake, which occurred at a depth of over 700 kilometers,"
+                ];
+              } else {
+                detail.summaryText.depth = [
+                  `震源の深さは ${-coordinates[2] / 1000} km です。`,
+                  `The quake, which occurred at a depth of ${-coordinates[2] / 1000} kilometers,`
+                ];
+              }
+            } else {
+              detail.summaryText.depth = [
+                "震源の深さは不明です。",
+                "The quake"
+              ];
+            }
+          }
+        }
+        if (types.includes("comment")){
+          if (data.Body.Comments.ForecastComment){
+            const commentCodes = data.Body.Comments.ForecastComment.Code.split(" ");
+            detail.summaryText.comment = [
+              data.Body.Comments.ForecastComment.Text.replaceAll("\n", " "),
+              commentCodes.map(code => AdditionalComments[code] ? AdditionalComments[code].en : "").filter(text => text).join(" ")
+            ];
+          }
+          detail.summaryText.freeFormComment = data.Body.Comments.FreeFormComment || "";
         }
       }
-      
+
       return [
         detail.summaryText.time[0],
         detail.summaryText.intensity[0],
@@ -655,12 +677,12 @@ const it = window.DataOperator = {
 
     // },
     async view (id){
-      
+
     },
     get latestId (){
       return 0;
     },
-    
+
     /**
      * @typedef {{label: {epicenter: string, intensity: string, time: string}, backcolor: string, textcolor: string}} QuakeSummary
      * @param {{summary: QuakeSummary[], eventId: string}[]} summaries
@@ -668,16 +690,16 @@ const it = window.DataOperator = {
     onSummaryUpdated (summaries){
       console.log(summaries);
     },
-    
+
     /**
      * @param {string} eventId
-     * @param {{summary: QuakeSummary, detail: {summaryText: {time: string[], intensity: string[], epicenter: string[], magnitude: string[], depth: string[], comment: string[]}, shindoList: string[], timeStr: string, epicenterIndex: number, epicenterName: string, depthStr: string, magnitude: string, maxShindo: number, speechList: {type: string, path: string}[]}}} data 
+     * @param {{summary: QuakeSummary, detail: {summaryText: {time: string[], intensity: string[], epicenter: string[], magnitude: string[], depth: string[], comment: string[]}, shindoList: string[], timeStr: string, epicenterIndex: number, epicenterName: string, depthStr: string, magnitude: string, maxShindo: number, speechList: {type: string, path: string}[]}}} data
      */
     onActivated (eventId, data){
       console.log("Activated Event ID:", eventId);
       console.log(data);
     },
-    
+
     quakeData: {
       // sample ("reports" field is omitted in actual data because it can be too heavy to store in memory, but it's here for testing and demonstration purposes)
       "20210213230800": {
@@ -792,6 +814,7 @@ const it = window.DataOperator = {
             magnitude: ["マグニチュードは 7.3、", "A magnitude 7.3 earthquake struck"],
             depth: ["震源の深さは 55 km です。", "The quake, which occurred at a depth of 55 kilometers,"],
             comment: ["この地震により、日本の沿岸では若干の海面変動があるかもしれませんが、被害の心配はありません。", "This earthquake may cause some sea level fluctuations along the coast of Japan, but there is no need to worry about any damage."],
+            freeFormComment: "",
           },
           shindoOneline: ["", "1", "2", "3", "4", "不明", "5-", "5+", "6-", "6+", "7"],
           shindoMultiline: "",
