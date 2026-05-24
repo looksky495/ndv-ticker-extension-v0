@@ -1368,21 +1368,21 @@ const Routines = {
     const timeString2=("0"+(targetTime.getFullYear()-2000)).slice(-2)+"-"+("0"+(targetTime.getMonth()+1)).slice(-2)+"-"+("0" + targetTime.getDate()).slice(-2);
     time.fillStyle = colorScheme[colorThemeMode][6][0];
     time.fillRect(0, 0, 128, 128);
-    time.font = "bold 20px 'Inter'";
-    time.textAlign = "center";
-    time.fillStyle = colorScheme[colorThemeMode][6][1];
-    time.fillText("Date", 64, 29);
+    // time.font = "bold 20px 'Inter'";
+    // time.textAlign = "center";
+    // time.fillStyle = colorScheme[colorThemeMode][6][1];
+    // time.fillText("Date", 64, 29);
     time.font = "bold 50px '7barSP'";
     time.textAlign = "start";
     time.fillStyle = colorScheme[colorThemeMode][6][3];
-    time.fillText("88:88", 10, 110, 108);
+    time.fillText("88:88", 10, 100, 108);
     time.fillStyle = colorScheme[colorThemeMode][6][2];
-    time.fillText(timeString1, 10, 110, 108);
+    time.fillText(timeString1, 10, 100, 108);
     time.font = "bold 29px '7barSP'";
     time.fillStyle = colorScheme[colorThemeMode][6][3];
-    time.fillText("88-88-88", 10, 62, 108);
+    time.fillText("88-88-88", 10, 52, 108);
     time.fillStyle = colorScheme[colorThemeMode][6][2];
-    time.fillText(timeString2, 10, 62, 108);
+    time.fillText(timeString2, 10, 52, 108);
   },
   md0title: function mode0titie(){
     context.fillStyle = colorScheme[colorThemeMode][1][mscale];
