@@ -1748,11 +1748,13 @@ const Routines = {
         if (q_depth !== "ごく浅い" && q_depth !== "深い" && q_depth) context.drawImage(isMscale2 ? images.quake.texts.depth_km2 : images.quake.texts.depth_km, 1042, 28);
         // マグニチュード（ラベル）
         // context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 406, 0);
-        context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 420, 25);
         context.font = "500 50px " + FontFamilies.sans;
         context.fillStyle = isMscale2 ? "#333" : "#fff";
         // マグニチュード
+        if (q_magnitude){
+          context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 420, 25);
         DrawTextureText(q_magnitude, 462, 45, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0});
+        }
         // 深さ
         if (q_depth === "ごく浅い"){
           context.font = "500 30px Inter, " + FontFamilies.sans;
@@ -1762,7 +1764,7 @@ const Routines = {
           context.font = "500 30px Inter, " + FontFamilies.sans;
           if (language === "Ja") context.fillText("深い", 950, 53, 90);
           if (language === "En") context.fillText("deep", 975, 53, 90);
-        } else {
+        } else if (q_depth){
           DrawTextureText(q_depth, 978, 48, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0}, 60);
         }
         context.font = "500 30px " + FontFamilies.sans;

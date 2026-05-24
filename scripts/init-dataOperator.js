@@ -120,7 +120,9 @@ const it = window.DataOperator = {
     tracker_vtse51: new TrafficTracker("JMA / Tsunami / VTSE51"),
     async load (){
       if (this.isIssued && Date.now() - this.expire >= 0) this.isIssued = false;
-      const list = await fetch(this.url_list + "?_=" + Date.now()).then(res => res.json());
+      const list = await fetch(this.url_list, {
+        cache: "no-cache"
+      }).then(res => res.json());
       this.tracker_list.update();
       if (!list.length) return;
       const latestEventId = list[0].eid;
