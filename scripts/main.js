@@ -3439,6 +3439,20 @@ DataOperator.earthquake.onSummaryUpdated = summaryData => {
   }
 };
 
+// 押すと地震情報の音が切り替えられるようにする
+elements.class.sound_quake_type.forEach(element => {
+  element.addEventListener("click", event => {
+    event.preventDefault();
+    let element = event.target;
+    let attr = element.getAttribute("data-type");
+    if(attr === "major"){
+      element.setAttribute("data-type", "normal");
+    } else {
+      element.setAttribute("data-type", "major");
+    }
+  });
+});
+
 DataOperator.earthquake.onActivated = (eventId, detail) => {
   q_timeAll = detail.timeStr;
   q_depth = detail.depthStr;
