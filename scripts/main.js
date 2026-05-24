@@ -3447,104 +3447,27 @@ DataOperator.earthquake.onActivated = (eventId, detail) => {
   q_isSokuho = detail.isSokuho;
   q_magnitude = detail.magnitude;
   q_maxShindo = detail.maxShindo;
-  quakeText = detail.shindoOneline;
-  
-  const multilineText = `${detail.isSokuho ? "【震度速報】" : "【地震情報】"} ${detail.shindoOneline[0].replace(/　　　.*/g, "")}\n\n${detail.shindoMultiline}`;
+  quakeText = detail.shindoOneline.slice();
+  // 遠地地震情報の津波高さの文章をティッカー用に改変
+  if (detail.summaryText.freeFormComment.includes("観測された各地の津波の高さは以下の")){
+    quakeText[0] = quakeText[0].replace("　　　", `${
+      detail.summaryText.freeFormComment.replace(/^.*観測された各地の津波の高さは以下の.+\n(?:＊印.*)?\n国・.+\n/m, "既に観測された各地の津波の高さは以下のとおりです。\n")
+        .replace(/^([^\s]+)[ \u3000]+([^\s]+)[ \u3000]+([^\s]+).*/gm, "　$2（$1）：$3").replace("\n", "")
+    }　　　　`);
+  }
+
+  if (q_maxShindo > 0){
+    SFXController.volume(sounds.quake[elements.class.sound_quake_type[q_maxShindo - 1].getAttribute("data-type")], elements.class.sound_quake_volume[q_maxShindo - 1].value / 100);
+    SFXController.play(sounds.quake[elements.class.sound_quake_type[q_maxShindo - 1].getAttribute("data-type")]);
+  }
+
+  const multilineText = `${detail.isSokuho ? "【震度速報】" : "【地震情報】"} ${detail.shindoOneline[0].replace(/　　　.*/g, "")}${detail.summaryText.freeFormComment ? "\n\n" + detail.summaryText.freeFormComment : ""}\n\n${detail.shindoMultiline}`;
   document.getElementById("eiwind").innerText = multilineText;
   document.getElementById("eiwind").scrollTop = 0;
   if (document.getElementById("setClipQuake").checked) copyText(multilineText);
   
   viewQuake();
 };
-
-var earthquake_latest_identifier = "";
-// var earthquake_event_isloading = false;
-/**
- * 地震のイベントを取得
- * @param {String} event_id イベントID
- */
-function load_quake_event_v2(p2pquakeEventData){
-  const { event_id } = p2pquakeEventData;
-  fetch(RequestURL.nhkQuake2.replace("{event_id}", event_id)+"?_="+Date.now()).then(res => {
-    load_quake_event_v2.tracker.update();
-    const identifier = event_id + res.headers.get("last-modified");
-    if (earthquake_latest_identifier !== identifier){
-      earthquake_latest_identifier = identifier;
-      return res.json();
-    } else {
-      return new Promise(() => {
-        return false;
-      });
-    }
-  }).then(data => {
-    if (data){
-      const magnitude_not_a_number = {"M不明": "-901", "M8を超える巨大地震": "-902", "Ｍ不明": "-901", "Ｍ８を超える巨大地震": "-902"};
-      const earthquake_intensity_list_all = { "S1": 1, "S2": 2, "S3": 3, "S4": 4, "S5-": 6, "S5+": 7, "S6-": 8, "S6+": 9, "S7": 10 };
-      const event_date = new Date(data.event_date);
-      const last_magnitude = q_magnitude;
-      q_timeYY = event_date.getFullYear();
-      q_timeMM = ("0" + (event_date.getMonth() + 1)).slice(-2);
-      q_timeDD = ("0" + event_date.getDate()).slice(-2);
-      q_timeH = ("0" + event_date.getHours()).slice(-2);
-      q_timeM = ("0" + event_date.getMinutes()).slice(-2);
-      q_timeAll = q_timeYY + "-" + q_timeMM + "-" + q_timeDD + " " + q_timeH + ":" + q_timeM;
-
-      q_maxShindo = earthquake_intensity_list_all[data.max_shindo];
-      q_currentShindo = q_maxShindo;
-      q_msiText = shindoListJP[q_maxShindo];
-      q_isSokuho = data.sokuho === "1";
-
-      if (data.hypocenter.code){
-        q_epiIdx = epicenter_list[12].indexOf(data.hypocenter.code);
-        q_magnitude = magnitude_not_a_number[data.magnitude] || data.magnitude;
-        q_depth = data.depth;
-        if(q_depth === "0") q_depth = "ごく浅い";
-        q_epiName = data.hypocenter.name;
-        $('#menu .eiwind').removeClass('SI');
-      } else {
-        q_magnitude = "--";
-        q_epiName = "-------------";
-        q_depth = "--";
-        q_epiIdx = 343;
-        $('#menu .eiwind').addClass('SI');
-      }
-
-      quakeText = ["","","","","","","","","","",""];
-      for (let key in earthquake_intensity_list_all){
-        if(data.hasOwnProperty(key)){
-          quakeText[earthquake_intensity_list_all[key]] = data[key].pref.map(pref => {
-            return (q_isSokuho ? "" : "<"+pref.name+"> ") + pref.uid_list.map(city => city.name).join(" ");
-          }).join("　 ");
-        }
-      }
-      quake_customComment = data.forecast_comment;
-
-      // 初回起動時判定
-      if (last_magnitude){
-        viewQuake(0);
-        // if(Number(document.getElementsByName("minint")[0].value)<=q_maxShindo && ((Number(document.getElementsByName("minmag")[0].value)<=Number(q_magnitude) && Number(document.getElementsByName("depmin")[0].value)>=Number(q_depth=="ごく浅い"?0:q_depth))||q_magnitude=="--")){
-          SFXController.volume(sounds.quake[elements.class.sound_quake_type[q_maxShindo - 1].getAttribute("data-type")], elements.class.sound_quake_volume[q_maxShindo - 1].value / 100);
-          SFXController.play(sounds.quake[elements.class.sound_quake_type[q_maxShindo - 1].getAttribute("data-type")]);
-        // }
-      }
-      quakesContainer.hide();
-      earthquakes_log[event_id] = {
-        epicenter: q_epiName,
-        magnitude: q_magnitude,
-        msi: q_maxShindo,
-        q_isSokuho: q_isSokuho,
-        seismic_intensity: q_msiText,
-        depth: q_depth,
-        timeDD: q_timeDD,
-        timeH: q_timeH,
-        timeM: q_timeM,
-        epicenter_id: q_epiIdx,
-        text: quakeText
-      };
-    }
-  });
-}
-load_quake_event_v2.tracker = new TrafficTracker("NHK / 地震情報イベント");
 
 const SFXController = {
   play: soundData => {
