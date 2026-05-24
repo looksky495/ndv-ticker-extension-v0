@@ -7,7 +7,9 @@
   window.addEventListener("message", event => {
     // if (!message_status.isConnect) return;
     message_status.isConnect = false;
-    message_status.resolve(event.data);
+    if (message_status.resolve) {
+      message_status.resolve(event.data);
+    }
   });
   const iframe_sandbox = document.getElementById("sandbox-webassembly");
   window.connect2sandbox = (type, message) => {
