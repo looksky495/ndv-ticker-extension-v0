@@ -15,11 +15,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
       - name: Generate Artifacts
-        run: zip -r release-artifacts.zip css/ data/ font/ img/ library/ modules/ sandbox/ scripts/ sound/ disp-commands.html manifest.json popup2.html settings.html updateNotice.html
+        run: |
+          mkdir -p extension/
+          cp -r css/ data/ font/ img/ library/ modules/ sandbox/ scripts/ sound/ disp-commands.html manifest.json popup2.html settings.html updateNotice.html extension/
+          zip -r release-extension.zip extension/
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: release-artifacts.zip
+          artifacts: release-extension.zip
           tag: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           bodyFile: RELEASE.md
