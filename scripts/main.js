@@ -1443,7 +1443,7 @@ const Routines = {
     }
 
     if (viewMode !== 3) textOffsetX -= textSpeed;
-    
+
     // if (elements.id.setIntervalNHKquake.valueAsNumber < targetTimeInt - loadP2PQuakeList.lastCall) loadP2PQuakeList();
     if ((q_startTime % Math.floor(elements.id.setIntervalNHKquake.valueAsNumber/20)) === 1) DataOperator.earthquake.loadList();
     if ((q_startTime % Math.floor(elements.id.setIntervalTenkiJpTsu.valueAsNumber/20)) === 1) DataOperator.tsunami.load();
@@ -1753,7 +1753,7 @@ const Routines = {
         // マグニチュード
         if (q_magnitude){
           context.drawImage(isMscale2 ? images.quake.texts.magni2 : images.quake.texts.magni, 420, 25);
-        DrawTextureText(q_magnitude, 462, 45, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0});
+          DrawTextureText(q_magnitude, 462, 45, {base:"HelveticaNeue-CondensedBold",px:50,weight:"bold",letterSpacing:0});
         }
         // 深さ
         if (q_depth === "ごく浅い"){
@@ -3112,6 +3112,38 @@ function parseRainfallData(text){
   return results;
 }
 
+const weatherMaintainanceTime = {
+  start: null,
+  end: null,
+  notified: false
+};
+
+async function getMaintainanceData (){
+  const data = await fetch("https://looksky495.github.io/ndv-tickers/maintainance.json").then(res => res.json());
+  const currentTime = Date.now();
+
+  for (const key of data.list){
+    const event = data.detail[key];
+    const start = new Date(event.start);
+    const end = new Date(event.end);
+
+    // status が true の場合、過去のイベントであっても、そのイベントは有効であるとみなす。
+    if (event.status){
+      if (weatherMaintainanceTime.start !== start.getTime()){
+        weatherMaintainanceTime.notified = false;
+      }
+
+      weatherMaintainanceTime.start = start.getTime();
+      weatherMaintainanceTime.end = end.getTime();
+
+      break;
+    }
+  }
+}
+
+setInterval(getMaintainanceData, 5 * 60 * 1000);
+getMaintainanceData();
+
 function weatherInfo(){
   $.ajax({
     type: 'GET',
@@ -3120,26 +3152,36 @@ function weatherInfo(){
     cache: false,
     success: data => {
       weatherInfo.tracker.update();
-      const performWeatherStartAt = performance.now() * 1000;
+
       if (viewMode === 2 || viewMode === 1) return;
+      const currentTime = Date.now();
+
+      if (!weatherMaintainanceTime.notified && weatherMaintainanceTime.start <= currentTime && currentTime < weatherMaintainanceTime.end){
+        weatherMaintainanceTime.notified = true;
+        NewsOperator.add("メンテナンスのお知らせ", "", "一部の気象情報は、現在メンテナンス中のため、更新を停止しています。", { duration: 40000 });
+        SFXController.play(sounds.start);
+      }
+
       const arr = [];
       let isChange = true;
       $(data).find('entry').each(function (){
         const linkAttrHref = this.fun1("link").getAttribute('href');
-        const titleTextCotent = this.fun1('title').textContent;
+        const titleTextContent = this.fun1('title').textContent;
         if (weatherlink.indexOf(linkAttrHref) !== -1) isChange = false;
         arr.push(linkAttrHref);
-        if (isChange && titleTextCotent !== "早期天候情報" && titleTextCotent !== "気象警報・注意報" && titleTextCotent !== "気象特別警報・警報・注意報"){
-          if (titleTextCotent == "土砂災害警戒情報" && q_startTime <= 300) isChange = false;
-          if (titleTextCotent == "指定河川洪水予報" && q_startTime <= 300) isChange = false;
+        if (isChange && titleTextContent !== "早期天候情報" && titleTextContent !== "気象警報・注意報" && titleTextContent !== "気象特別警報・警報・注意報"){
+          if (titleTextContent == "土砂災害警戒情報" && q_startTime <= 300) isChange = false;
+          if (titleTextContent == "指定河川洪水予報" && q_startTime <= 300) isChange = false;
         }
-        const performWeatherLoadStartAt = performance.now() * 1000;
-        if (isChange){
-          if (titleTextCotent === "台風解析・予報情報（５日予報）（Ｈ３０）");
-          // GitHubの履歴にこれ書いてたやつあると思うからそこから引っ張ってきて（2023/08/15らへん）
-        }
+
+        // 15 秒以上経過している場合、かつ情報が更新されている場合にのみ、以下の処理を行う
         if (q_startTime > 300 && isChange){
-          if (titleTextCotent === "気象警報・注意報（Ｈ２７）"){
+          if (titleTextContent === "気象警報・注意報（Ｈ２７）"){
+            if (weatherMaintainanceTime.start <= currentTime){
+              // メンテナンス終了後は気象警報・注意報（Ｈ２７）ではなく気象警報・注意報（Ｒ０６）を使用するため、終了条件を設定しない。
+              return;
+            }
+
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
@@ -3174,16 +3216,21 @@ function weatherInfo(){
                 }
               }
             });
-          } else if (titleTextCotent === "気象警報・注意報（Ｒ０６）"){
-            // やる気を見せる
-          } else if (titleTextCotent === "竜巻注意情報"){
+          } else if (titleTextContent.startsWith("気象警報・注意報（Ｒ０６）")){
+            $.ajax({
+              type: 'GET',
+              url: linkAttrHref,
+              dataType: 'xml',
+              cache: true,
+              success: weatherVPWWii
+            });
+          } else if (titleTextContent === "竜巻注意情報"){
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
               dataType: 'xml',
               cache: true,
               success: function(c){
-                const performWeatherLoadEndAt = performance.now() * 1000;
                 for (const item of c.querySelectorAll('Body > Warning[type="竜巻注意情報（一次細分区域等）"] > Item')){
                   if (item.querySelector('Kind > Code').textContent - 0){
                     const area = AreaForecastLocalM.tornado[item.querySelector('Area > Code').textContent];
@@ -3193,21 +3240,19 @@ function weatherInfo(){
                   }
                   SFXController.play(sounds.warning.Notice);
                 }
-                document.getElementById("dbPfWeather").innerText = "気象情報処理セクション：" + (window.performance.now()*1000-performWeatherStartAt) + "ms (Load: " + (performWeatherLoadEndAt-performWeatherLoadStartAt) + "μs)";
                 // BNtitle.push("Hazardous wind watch is in effect.");
                 // 【竜巻注意情報（第3報）】山梨県中・西部、東部・富士五湖：06日19時50分まで有効
                 // Head > Serial : 第○報
                 // ValidDateTime : 有効期限
               }
             });
-          } else if (titleTextCotent.search("記録的短時間大雨情報") !== -1){
+          } else if (titleTextContent.search("記録的短時間大雨情報") !== -1){
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
               dataType: 'xml',
               cache: true,
               success: function(c){
-                const performWeatherLoadEndAt = performance.now() * 1000;
                 if (c.querySelector('Headline > Information > Item > Kind > Condition').textContent !== "取消"){
                   try {
                     const data = parseRainfallData(c.querySelector("Headline > Text").textContent);
@@ -3232,17 +3277,20 @@ function weatherInfo(){
                   ]);
                   SFXController.play(sounds.warning.HeavyRain);
                 }
-                document.getElementById("dbPfWeather").innerText = "気象情報処理セクション：" + (window.performance.now()*1000-performWeatherStartAt) + "ms (Load: " + (performWeatherLoadEndAt-performWeatherLoadStartAt) + "μs)";
               }
             });
-          } else if (titleTextCotent === "土砂災害警戒情報"){
+          } else if (titleTextContent === "土砂災害警戒情報"){
+            if (weatherMaintainanceTime.start <= currentTime){
+              // メンテナンス終了後は土砂災害警戒情報の受信をしないため、終了時間を判定しない。
+              return;
+            }
+
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
               dataType: 'xml',
               cache: true,
               success: function(c){
-                const performWeatherLoadEndAt = performance.now() * 1000;
                 if ($(c).find('Headline > Information > Item > Kind > Condition').text() === "解除"){
                   NewsOperator.add('土砂災害警戒情報　解除', c.querySelector("Headline > Text").textContent, "<土砂災害警戒情報 解除>　対象地域：" + c.querySelector('TargetArea > Name').textContent);
                   if (elements.id.speechCheckboxGround.checked) speechBase.start([
@@ -3269,17 +3317,15 @@ function weatherInfo(){
                   }
                   SFXController.play(sounds.warning.GroundLoosening);
                 }
-                document.getElementById("dbPfWeather").innerText = "気象情報処理セクション：" + (window.performance.now()*1000-performWeatherStartAt) + "ms (Load: " + (performWeatherLoadEndAt-performWeatherLoadStartAt) + "μs)";
               }
             });
-          } else if (titleTextCotent === "気象特別警報報知") {
+          } else if (titleTextContent === "気象特別警報報知") {
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
               dataType: 'xml',
               cache: true,
               success: function(c){
-                const performWeatherLoadEndAt = performance.now() * 1000;
                 if (c.querySelector('Head > Headline > Information[type="気象特別警報報知（府県予報区等）"] > Item > Kind > Name').textContent !== "解除"){
                   NewsOperator.add('特別警報を発表中', '', '発表中の地域では、重大な危険が差し迫った異常な状況');
                   NewsOperator.add('Emergency weather warnings are in effect.', '', 'This is an extraordinary situation with serious potential for disaster conditions.');
@@ -3299,65 +3345,26 @@ function weatherInfo(){
                 } else {
                   NewsOperator.add('特別警報は警報へ', '発表されていた特別警報は警報へ切り替えられましたが、引き続き最新情報にご注意ください。', '警報に切り替え：' + c.querySelector('Head > Headline > Information[type="気象特別警報報知（府県予報区等）"] > Item > Areas > Area > Name').textContent);
                 }
-                document.getElementById("dbPfWeather").innerText = "気象情報処理セクション：" + (window.performance.now()*1000-performWeatherStartAt) + "ms (Load: " + (performWeatherLoadEndAt-performWeatherLoadStartAt) + "μs)";
               }
             });
-          } else if (titleTextCotent === "指定河川洪水予報"){
+          } else if (titleTextContent === "指定河川洪水予報"){
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
               dataType: 'xml',
               cache: true,
               success: function(c){
-                const performWeatherLoadEndAt = performance.now() * 1000;
-                const level = Number($(c).find('Headline > Information[type="指定河川洪水予報（河川）"] Kind > Code').text());
-                if (ifrange(level, 50, 51)){
-                  SFXController.play(sounds.warning.Flood5);
-                  const riverAreaName = c.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
-                  const riverTitle = "【 " + c.querySelector("Head > Title").textContent + " / 警戒レベル５相当 】";
-                  NewsOperator.add(riverTitle, c.querySelector('Head > Headline > Text').textContent, riverAreaName + "では、氾濫が発生した模様。");
-                  for (const c2 of c.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
-                    const type = c2.querySelector("Property > Type").textContent;
-                    switch (type){
-                    case "主文":
-                      if (c2.getElementsByTagName("Areas").length){
-                        NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, "対象の水位観測所： "+c2.querySelector("Areas > Area > Name").textContent+" "+c2.querySelector("Stations > Station > Name").textContent+"水位観測所 （"+c2.querySelector("Stations > Station > Location").textContent+"）");
-                      } else {
-                        NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, riverAreaName + "で氾濫発生。すぐに安全の確保をしてください。");
-                      }
-                      break;
-                    case "浸水想定地区":
-                      for (const e2 of c2.querySelectorAll("Areas > Area")){
-                        const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
-                        NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
-                      }
-                      break;
-                    }
-                  }
-                } else if(ifrange(level, 40, 41)){
-                  SFXController.play(sounds.warning.Flood4);
-                  const riverAreaName = c.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
-                  const riverTitle = "【 " + c.querySelector('Head > Title').textContent + " / 警戒レベル４相当 】";
-                  NewsOperator.add(riverTitle, c.querySelector('Headline > Text').textContent, "対象河川： " + riverAreaName);
-                  for (const e of c.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
-                    const type = e.querySelector("Property > Type").textContent;
-                    switch (type){
-                    case "主文":
-                      NewsOperator.add(riverTitle, e.querySelector("Property > Text").textContent, "対象の水位観測所： " + e.querySelector("Areas > Area > Name").textContent + " " + e.querySelector("Stations > Station > Name").textContent + "水位観測所 （" + e.querySelector("Stations > Station > Location").textContent + "）");
-                      break;
-                    case "浸水想定地区":
-                      for (const e2 of e.querySelectorAll("Areas > Area")){
-                        const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
-                        NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
-                      }
-                      break;
-                    }
-                  }
+                if (weatherMaintainanceTime.end <= currentTime){
+                  // 切り替え完了後
+                  weatherVXKOii(NewsOperator, c);
+                } else if (currentTime < weatherMaintainanceTime.start){
+                  // 切り替え前
+                  weatherVXKOii_old(NewsOperator, c);
                 }
-                elements.id.dbPfDrawing.innerText = "気象情報処理セクション：" + (window.performance.now()*1000-performWeatherStartAt) + "ms (Load: " + (performWeatherLoadEndAt-performWeatherLoadStartAt) + "μs)";
               }
             });
-          } else if (titleTextCotent === "全般台風情報"){
+          } else if (titleTextContent === "全般台風情報"){
+            // メンテナンス終了後は全般台風情報は発表されない。削除対象。
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
@@ -3378,6 +3385,17 @@ function weatherInfo(){
                 }
               }
             });
+          } else if (titleTextContent === "全般気象解説情報"){
+            // メンテナンス終了後から配信開始予定。全般台風情報の配信終了に伴い、全般気象解説情報へ切り替え。
+            $.ajax({
+              type: 'GET',
+              url: linkAttrHref,
+              dataType: 'xml',
+              cache: true,
+              success: function(c){
+                weatherVPZJ51(c);
+              }
+            });
           }
         }
       });
@@ -3388,6 +3406,319 @@ function weatherInfo(){
     }
   });
 }
+
+/**
+ * @param {XMLDocument} dataXml
+ */
+const weatherVPZJ51 = dataXml => {
+  // 台風情報のみをフィルタ
+  const reportTitle = dataXml.querySelector("Head > Title").textContent;
+  const informations = {};
+
+  for (const kind of dataXml.querySelectorAll('Head > Headline > Information[type="情報タグ"] > Item > Kind')){
+    const kindType = kind.querySelector("Name").textContent;
+    const kindConditions = kind.querySelector("Condition").textContent.split(" ");
+    informations[kindType] = kindConditions;
+  }
+
+  if (informations["情報タグ"]?.includes("台風")){
+    const meteorologicalText = dataXml.querySelector('Body > MeteorologicalInfos[type="概況"] > MeteorologicalInfo > Item > Kind > Property > Text').textContent || "";
+    const disasterPreventionText = dataXml.querySelector('Body > MeteorologicalInfos[type="防災事項"] > MeteorologicalInfo > Item > Kind > Property > Text').textContent || "";
+    const descriptionText = meteorologicalText + "　　" + disasterPreventionText;
+    NewsOperator.add(reportTitle, descriptionText, "", { duration: descriptionText.length * 150 });
+  }
+}
+
+/**
+ * @param {XMLDocument} dataXml
+ */
+const weatherVXKOii_old = dataXml => {
+  const level = Number($(dataXml).find('Headline > Information[type="指定河川洪水予報（河川）"] Kind > Code').text());
+  if (ifrange(level, 50, 51)){
+    SFXController.play(sounds.warning.Flood5);
+    const riverAreaName = dataXml.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
+    const riverTitle = "【 " + dataXml.querySelector("Head > Title").textContent + " / 警戒レベル５相当 】";
+    NewsOperator.add(riverTitle, dataXml.querySelector('Head > Headline > Text').textContent, riverAreaName + "では、氾濫が発生した模様。");
+    for (const c2 of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
+      const type = c2.querySelector("Property > Type").textContent;
+      switch (type){
+      case "主文":
+        if (c2.getElementsByTagName("Areas").length){
+          NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, "対象の水位観測所： "+c2.querySelector("Areas > Area > Name").textContent+" "+c2.querySelector("Stations > Station > Name").textContent+"水位観測所 （"+c2.querySelector("Stations > Station > Location").textContent+"）");
+        } else {
+          NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, riverAreaName + "で氾濫発生。すぐに安全の確保をしてください。");
+        }
+        break;
+      case "浸水想定地区":
+        for (const e2 of c2.querySelectorAll("Areas > Area")){
+          const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
+          NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
+        }
+        break;
+      }
+    }
+  } else if(ifrange(level, 40, 41)){
+    SFXController.play(sounds.warning.Flood4);
+    const riverAreaName = dataXml.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
+    const riverTitle = "【 " + dataXml.querySelector('Head > Title').textContent + " / 警戒レベル４相当 】";
+    NewsOperator.add(riverTitle, dataXml.querySelector('Headline > Text').textContent, "対象河川： " + riverAreaName);
+    for (const e of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
+      const type = e.querySelector("Property > Type").textContent;
+      switch (type){
+      case "主文":
+        NewsOperator.add(riverTitle, e.querySelector("Property > Text").textContent, "対象の水位観測所： " + e.querySelector("Areas > Area > Name").textContent + " " + e.querySelector("Stations > Station > Name").textContent + "水位観測所 （" + e.querySelector("Stations > Station > Location").textContent + "）");
+        break;
+      case "浸水想定地区":
+        for (const e2 of e.querySelectorAll("Areas > Area")){
+          const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
+          NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
+        }
+        break;
+      }
+    }
+  }
+};
+
+/**
+ * @param {XMLDocument} dataXml
+ */
+const weatherVPWWii = dataXml => {
+  const reportType = dataXml.querySelector('Control > Title').textContent;
+  const parentAreaName = dataXml.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Name').textContent;
+  const newsTitle = "気象警報・注意報　";
+
+  const forecastCities = dataXml.querySelectorAll('Body > Warning[type="気象警報・注意報（市町村等）"] > Item');
+  const headlineText = dataXml.querySelector('Head > Headline > Text').textContent;
+  for (const city of forecastCities){
+    const alertKindStatus = city.querySelector('Kind > Status').textContent;
+    if (alertKindStatus === "継続" || alertKindStatus === "発表警報・注意報はなし") {
+      continue;
+    }
+
+    const alertName = city.querySelector('Kind > Name').textContent;
+    const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
+    const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
+
+    let mainText = "【 " + cityName + " 】 ";
+    if (alertKindStatus === "発表"){
+      mainText += "発表：" + alertName;
+    } else if (alertKindStatus === "解除"){
+      mainText += "解除：" + alertName;
+    } else {
+      mainText += lastAlertName + " から " + alertName + " へ切り替え";
+    }
+
+    if (reportType.endsWith("（大雨）")){ // VPWW55
+      NewsOperator.add(newsTitle + "大雨", "", mainText, { duration: 8000 });
+    } else if (reportType.endsWith("（土砂）")){ // VPWW56（従来の土砂災害警戒情報）
+      // TODO: 読み上げ
+
+      const criteriaPeriod = city.querySelector('Kind > Property > CriteriaPeriod > Base > Sentence')?.textContent;
+      // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
+
+      NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: 8000 });
+      SFXController.play(sounds.warning.GroundLoosening);
+    } else if (reportType.endsWith("（高潮）")){ // VPWW57
+      const properties = city.querySelectorAll('Kind > Property');
+      for (const property of properties){
+        const propertyType = property.querySelector('Type').textContent;
+        if (propertyType === "高潮基準超過"){
+          const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
+
+          if (isLocal){
+            const locals = property.querySelectorAll('WaveHeightPart > Base > Local, TidalLevelPart > Base > Local');
+            for (const local of locals){
+              const localName = local.querySelector('AreaName').textContent;
+              const tidalLevel = local.querySelector('TidalLevel, WaveHeight');
+              const tidalType = tidalLevel.getAttribute('type');
+              const exceedHeight = tidalLevel.textContent;
+              const subText = `${localName} ： ${tidalType} の高潮基準を ${exceedHeight}m 超過`;
+
+              NewsOperator.add(newsTitle + "高潮", subText, mainText, { duration: 8000 });
+
+              // 例「舞鶴湾 ： 最高うちあげ高水位 の高潮基準を 2.3m 超過」
+              // 例「（高潮予報区間以外） ： 潮位 の高潮基準を 2m 超過」
+            }
+          } else {
+            const bases = property.querySelectorAll('WaveHeightPart > Base, TidalLevelPart > Base');
+            const texts = [];
+            for (const base of bases){
+              const baseLevel = base.querySelector('TidalLevel, WaveHeight');
+              const tidalType = baseLevel.getAttribute('type');
+              const exceedHeight = baseLevel.textContent;
+              const subText = `${tidalType} の高潮基準を ${exceedHeight}m 超過`;
+
+              texts.push(subText);
+            }
+            NewsOperator.add(newsTitle + "高潮", texts.join(" ，　"), mainText, { duration: 8000 });
+
+            // 例「最高うちあげ高水位 の高潮基準を 2.3m 超過 ，　潮位 の高潮基準を 2m 超過」
+          }
+
+        }
+      }
+    } else if (reportType.endsWith("（暴風）")){ // VPWW58
+      const properties = city.querySelectorAll('Kind > Property');
+      for (const property of properties){
+        const propertyType = property.querySelector('Type').textContent;
+        if (propertyType === "風"){
+          const isLocal = !!property.querySelector('WindDirectionPart > Base > Local');
+
+          if (isLocal){
+            const windDirections = Array.from(property.querySelectorAll('WindDirectionPart > Base > Local'));
+            const windSpeeds = Array.from(property.querySelectorAll('WindSpeedPart > Base > Local'));
+
+            const texts = [];
+            for (let i = 0, l = windDirections.length; i < l; i++){
+              const localName = windDirections[i].querySelector('AreaName').textContent;
+              const windCondition = windDirections[i].querySelector('WindDirection').getAttribute("condition");
+              const windDirection = windDirections[i].querySelector('WindDirection').getAttribute("description");
+              const windSpeed = windSpeeds[i].querySelector('WindSpeed').textContent;
+              const subText = `${localName}：${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
+
+              texts.push(subText);
+            }
+            NewsOperator.add(newsTitle + "暴風", texts.join(" ，　"), mainText, { duration: 8000 });
+            // 例「陸上：西の風（風雪） 13 m/s ，　オホーツク海：西の風 25 m/s」
+          } else {
+            const windDirection = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("description");
+            const windCondition = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("condition");
+            const windSpeed = property.querySelector('WindSpeedPart > Base > WindSpeed').textContent;
+            const subText = `${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
+
+            NewsOperator.add(newsTitle + "暴風", subText, mainText, { duration: 8000 });
+            // 例「西の風（風雪） 15 m/s」
+          }
+        }
+      }
+    } else if (reportType.endsWith("（波浪）")){ // VPWW59
+      const properties = city.querySelectorAll('Kind > Property');
+      for (const property of properties){
+        const propertyType = property.querySelector('Type').textContent;
+        if (propertyType === "波"){
+          const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
+
+          if (isLocal){
+            const locals = property.querySelectorAll('WaveHeightPart > Base > Local');
+            const texts = [];
+            for (const local of locals){
+              const localName = local.querySelector('AreaName').textContent;
+              const waveHeight = local.querySelector('WaveHeight').textContent;
+              const subText = `${localName}：${waveHeight} m`;
+
+              texts.push(subText);
+            }
+            NewsOperator.add(newsTitle + "波浪", "［波高］ " + texts.join(" ，　"), mainText, { duration: 8000 });
+            // 例「［波高］ 陸上：3 m ，　オホーツク海：6 m」
+          } else {
+            const waveHeight = property.querySelector('WaveHeightPart > Base > WaveHeight').textContent;
+            const subText = `${waveHeight} m`;
+
+            NewsOperator.add(newsTitle + "波浪", "［波高］ " + subText, mainText, { duration: 8000 });
+            // 例「［波高］ 3 m」
+          }
+        }
+      }
+    } else if (reportType.endsWith("（大雪）")){ // VPWW60
+      const properties = city.querySelectorAll('Kind > Property');
+      for (const property of properties){
+        const propertyType = property.querySelector('Type').textContent;
+        if (propertyType === "雪"){
+          const isLocal = !!property.querySelector('SnowfallDepthPart > Base > Local');
+
+          if (isLocal){
+            const locals = property.querySelectorAll('SnowfallDepthPart > Base > Local');
+            for (const local of locals){
+              const localName = local.querySelector('AreaName').textContent;
+              const snowfalls = local.querySelectorAll('SnowfallDepth');
+
+              const texts = [];
+              for (const snowfall of snowfalls){
+                const snowfallType = zen2han(snowfall.getAttribute('type'));
+                const snowfallDepth = snowfall.textContent;
+                texts.push(`${snowfallType} ${snowfallDepth} cm`);
+              }
+              const subText = `${localName} ： ${texts.join(" ，　")}`;
+
+              NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 8000 });
+              // 例「陸上 ： 6時間最大降雪量 40 cm ，　12時間最大降雪量 60 cm」
+            }
+          } else {
+            const snowfalls = property.querySelectorAll('SnowfallDepthPart > Base > SnowfallDepth');
+            const texts = [];
+            for (const snowfall of snowfalls){
+              const snowfallType = zen2han(snowfall.getAttribute('type'));
+              const snowfallDepth = snowfall.textContent;
+              texts.push(`${snowfallType} ${snowfallDepth} cm`);
+            }
+            const subText = texts.join(" ，　");
+
+            NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 8000 });
+            // 例「12時間最大降雪量 60 cm ，　24時間最大降雪量 90 cm」
+          }
+        }
+      }
+    } else { // VPWW61
+      NewsOperator.add(newsTitle, headlineText, mainText, { duration: 7000 });
+    }
+  }
+};
+
+
+/**
+ * @param {XMLDocument} dataXml
+ */
+const weatherVXKOii = dataXml => {
+  const level = Number($(dataXml).find('Headline > Information[type="指定河川洪水予報（河川）"] Kind > Code').text());
+
+  if (50 <= level && level < 60){
+    SFXController.play(sounds.warning.Flood5);
+
+    // const warnCode = dataXml.querySelector('Head > Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Kind > Code').textContent;
+    // const warnName = {"51": "レベル５氾濫特別警報", "53": "レベル５氾濫特別警報"}[warnCode] ?? "氾濫特別警報";
+    const riverAreaName = dataXml.querySelector('Head > Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
+
+    const headlines = dataXml.querySelector('Head > Headline > Text').textContent.replace(/^【.*?(［.+］)?】〔.+〕/m, "$1").split(/\u3000+/);
+    const riverTitle = "レベル５氾濫特別警報　　" + riverAreaName;
+
+    for (const headline of headlines) NewsOperator.add(riverTitle, "", headline, { duration: 20000 });
+    for (const c2 of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
+      const type = c2.querySelector("Property > Type").textContent;
+
+      if (type === "浸水想定地区"){
+        for (const e2 of c2.querySelectorAll("Areas > Area")){
+          const areaName = e2.getElementsByTagName("Prefecture")[0].textContent + e2.getElementsByTagName("City")[0].textContent;
+          NewsOperator.add(riverTitle, "", "［浸水想定地区］ " + areaName, { duration: 2500 });
+        }
+      } else if (type === "浸水想定地区（氾濫発生情報）"){
+        for (const e2 of c2.querySelectorAll("Areas > Area")){
+          const areaName = e2.getElementsByTagName("Prefecture")[0].textContent + e2.getElementsByTagName("City")[0].textContent;
+          NewsOperator.add(riverTitle, "", "［氾濫箇所からの浸水想定地区］ " + areaName, { duration: 2500 });
+        }
+      }
+    }
+  } else if (40 <= level && level < 50){
+    SFXController.play(sounds.warning.Flood4);
+
+    const riverAreaName = dataXml.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
+
+    const headlines = dataXml.querySelector('Head > Headline > Text').textContent.replace(/^【.*?(［.+］)?】〔.+〕/m, "$1").split(/\u3000+/);
+    const riverTitle = `レベル４氾濫危険警報　　` + riverAreaName;
+
+    for (const headline of headlines) NewsOperator.add(riverTitle, "", headline);
+    for (const e of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
+      const type = e.querySelector("Property > Type").textContent;
+
+      if (type === "浸水想定地区"){
+        for (const e2 of e.querySelectorAll("Areas > Area")){
+          const areaName = e2.getElementsByTagName("Prefecture")[0].textContent + e2.getElementsByTagName("City")[0].textContent;
+          NewsOperator.add(riverTitle, "", "［浸水想定地区］ " + areaName, { duration: 2500 });
+        }
+      }
+    }
+  }
+};
+
 weatherInfo.tracker = new TrafficTracker("JMA / 気象情報 一覧");
 
 function ifrange(n, e1, e2, cd=[0,0]){
@@ -3422,7 +3753,7 @@ var l = [];
 DataOperator.earthquake.onSummaryUpdated = summaryData => {
   const quakeItemList = document.getElementById("eiList");
   quakeItemList.innerHTML = "";
-  
+
   for (const entry of summaryData){
     const button = document.createElement("button");
     button.type = "button";
@@ -3432,7 +3763,7 @@ DataOperator.earthquake.onSummaryUpdated = summaryData => {
     button.dataset.eventId = entry.eventId;
     button.textContent = `${entry.summary.label.epicenter}　${entry.summary.label.intensity}　${entry.summary.label.time}`;
     quakeItemList.appendChild(button);
-    
+
     button.addEventListener("click", event => {
       DataOperator.earthquake.activate(event.currentTarget.dataset.eventId);
     });
@@ -3479,7 +3810,7 @@ DataOperator.earthquake.onActivated = (eventId, detail) => {
   document.getElementById("eiwind").innerText = multilineText;
   document.getElementById("eiwind").scrollTop = 0;
   if (document.getElementById("setClipQuake").checked) copyText(multilineText);
-  
+
   viewQuake();
 };
 
