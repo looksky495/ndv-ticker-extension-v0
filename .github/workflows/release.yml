@@ -7,13 +7,13 @@ on:
   push:
     tags:
       - "v*"
-      
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Generate Artifacts
         run: zip -r release-artifacts.zip css/ data/ font/ img/ library/ modules/ sandbox/ scripts/ sound/ disp-commands.html manifest.json popup2.html settings.html updateNotice.html
       - name: Create GitHub Release
