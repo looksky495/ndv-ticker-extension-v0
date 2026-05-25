@@ -1,14 +1,13 @@
 'use strict';
 
 // Release Note:
-//  eewLocalhostStreamPort を 0 にすること
 //  manifest.json
-//  ホームページ
-//  Google Apps Script
 //  AppVersionHistory
 //  AppVersionCode
 //  AppVersionView
 //  SpeechVersionData
+//  ホームページ
+//  Google Apps Script
 
 const AppVersionHistory = [
   "β0.1.0",
@@ -42,11 +41,12 @@ const AppVersionHistory = [
   "β0.5.3",
   "β0.5.4",
   "β0.5.5",
-  "β0.6.0"
+  "β0.6.0",
+  "β0.6.1"
 ];
 
-const AppVersionCode = "beta30";
-const AppVersionView = "β0.6.0";
+const AppVersionCode = "beta31";
+const AppVersionView = "β0.6.1";
 console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
