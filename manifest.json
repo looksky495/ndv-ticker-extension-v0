@@ -2,7 +2,7 @@
   "background": {
     "service_worker": "scripts/background.js"
   },
-  "version": "0.6.1",
+  "version": "0.7.0",
   "action": {
     "default_icon": {
       "128": "img/icon128.png"
@@ -45,7 +45,6 @@
     "https://weathernews.jp/river/csv_v2/latest.csv",
     "https://smi.lmoniexp.bosai.go.jp/*",
     "https://www.lmoni.bosai.go.jp/*",
-    "https://smtgvs.weathernews.jp/a/solive_timetable/timetable.json",
     "https://md-ndv356.github.io/ndv-tickers/*"
   ],
   "commands": {

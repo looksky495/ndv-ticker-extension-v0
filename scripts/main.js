@@ -43,11 +43,11 @@ const AppVersionHistory = [
   "β0.5.5",
   "β0.6.0",
   "β0.6.1",
-  "β0.6.2"
+  "β0.7.0"
 ];
 
 const AppVersionCode = "beta32";
-const AppVersionView = "β0.6.2";
+const AppVersionView = "β0.7.0";
 console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
@@ -4356,7 +4356,7 @@ const byteToString = byte => {
       if (currentVerID < 16){ /* β0.2.8以前 */ data.settings.volume.fldoc5 = data.settings.volume?.fldoc ?? 100; data.settings.volume.fldoc4 = 100; data.settings.volume.gl = 100; isSaveForced = true; }
       if (currentVerID < 22){ /* β0.3.4以前 */ data.settings.volume.eewL = [ data.settings.volume.eewL, data.settings.volume.eewL, data.settings.volume.eewL ] }
       // if (currentVerID < 23){ /* β0.4.0以前 */ alert(data.app.lastVer+" からのバージョンアップを検知しました。\nカスタム音声の場所が、 EEW_Warning.（以下省略） → 「eew-custom.mp3」のみに変更されています。\nカスタム音声を使用している場合、手動で名前を変更するようにお願いします。"); }
-      if (currentVerID < 33){ /* β0.6.2以前 */
+      if (currentVerID < 33){ /* β0.7.0以前 */
         const mode0new = [];
         for (let i = 0; i < 5; i ++){
           const convShortcutList = [
