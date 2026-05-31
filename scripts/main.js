@@ -1629,10 +1629,7 @@ const Routines = {
     context.fillText(NewsOperator.viewing.title, 35, 45, 1010);
   },
   main: function mainRoutines(){
-    //let gr; //canvas gradient color
-    //背景(White)
-    // const currentTime = Date.now();
-
+    try {
     if (viewMode !== 1) drawRect(0, 60, 1080, 68, colorScheme[colorThemeMode][5][0]);
     context.font = '300 40px ' + FontFamilies.sans;
     //context.font = '40px Arial, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, メイリオ, Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif';
@@ -1663,21 +1660,21 @@ const Routines = {
     if (viewMode !== 3) textOffsetX -= textSpeed;
 
     // if (elements.id.setIntervalNHKquake.valueAsNumber < targetTimeInt - loadP2PQuakeList.lastCall) loadP2PQuakeList();
-    if ((q_startTime % Math.floor(elements.id.setIntervalNHKquake.valueAsNumber/20)) === 1) DataOperator.earthquake.loadList();
-    if ((q_startTime % Math.floor(elements.id.setIntervalTenkiJpTsu.valueAsNumber/20)) === 1) DataOperator.tsunami.load();
-    if ((q_startTime % Math.floor(elements.id.setIntervalTyphCom.valueAsNumber/20)) === 1) DataOperator.typh_comment.load();
-    if ((q_startTime % Math.floor(elements.id.setIntervalWarn.valueAsNumber/20)) === 1) DataOperator.warn_current.load();
-    if ((q_startTime % Math.floor(elements.id.setIntervalWNImscale.valueAsNumber/20)) === 1) XHRs.mscale.load();
-    if ((q_startTime % Math.floor(elements.id.setIntervalWNIsorabtn.valueAsNumber/20)) === 1) sorabtn();
-    if ((q_startTime % Math.floor(elements.id.setIntervalWNIriver.valueAsNumber/20)) === 1) XHRs.river.load();
-    if ((q_startTime % Math.floor(elements.id.setIntervalJMAfcst.valueAsNumber/20)) === 1) XHRs.getJMAforecast.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalNHKquake.valueAsNumber/(1000/60))) === 1) DataOperator.earthquake.loadList();
+    if ((q_startTime % Math.floor(elements.id.setIntervalTenkiJpTsu.valueAsNumber/(1000/60))) === 1) DataOperator.tsunami.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalTyphCom.valueAsNumber/(1000/60))) === 1) DataOperator.typh_comment.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalWarn.valueAsNumber/(1000/60))) === 1) DataOperator.warn_current.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalWNImscale.valueAsNumber/(1000/60))) === 1) XHRs.mscale.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalWNIsorabtn.valueAsNumber/(1000/60))) === 1) sorabtn();
+    if ((q_startTime % Math.floor(elements.id.setIntervalWNIriver.valueAsNumber/(1000/60))) === 1) XHRs.river.load();
+    if ((q_startTime % Math.floor(elements.id.setIntervalJMAfcst.valueAsNumber/(1000/60))) === 1) XHRs.getJMAforecast.load();
     if (q_startTime==4 || ((getFormattedDate(1).minute % 10)==0&&getFormattedDate(1).second==30&&t==0)) rain_windData((q_startTime===4)||(getFormattedDate(1).minute==0)),t=1;
     if (getFormattedDate(1).second === 50) t=0;
-    if ((q_startTime % Math.floor(elements.id.setIntervalJmaWt.valueAsNumber/20)) === 1) weatherInfo();
+    if ((q_startTime % Math.floor(elements.id.setIntervalJmaWt.valueAsNumber/(1000/60))) === 1) weatherInfo();
     if ((q_startTime % Math.floor(200)) == 1) humanReadable();
-    if ((q_startTime % 9000) === 1) getAmedasData();
-    if ((q_startTime % 3000) === 1) getEvacuationData();
-    if ((q_startTime % 225) === 1){
+    if ((q_startTime % 10800) === 1) getAmedasData();
+    if ((q_startTime % 3600) === 1) getEvacuationData();
+    if ((q_startTime % 270) === 1){
       t_page++;
       if(tsunamiTexts.length <= t_page){
         t_page = -5;
@@ -1686,7 +1683,7 @@ const Routines = {
     }
     const isMscale2 = mscale === 1 && colorThemeMode != 2;
 
-    if ((q_startTime % Math.floor(elements.id.setIntervalIedred.valueAsNumber/20)) === 1){
+    if ((q_startTime % Math.floor(elements.id.setIntervalIedred.valueAsNumber/(1000/60))) === 1){
       eewChecking_c1();
     }
     uptimeCount++;
@@ -1836,9 +1833,9 @@ const Routines = {
         } else {
           context.fillStyle = "#ffea00";
           context.font = "500 25px " + FontFamilies.sans;
-          const topWarnText = eewWarnTextList[Math.floor((q_startTime / 300) % 23)];
-          context.fillText(topWarnText.ja[Math.floor(((q_startTime % 300) / 300) * topWarnText.ja.length)], 337, 26, 553);
-          context.fillText(topWarnText.en[Math.floor(((q_startTime % 300) / 300) * topWarnText.en.length)], 337, 53, 553);
+          const topWarnText = eewWarnTextList[Math.floor((q_startTime / 360) % 23)];
+          context.fillText(topWarnText.ja[Math.floor(((q_startTime % 360) / 360) * topWarnText.ja.length)], 337, 26, 553);
+          context.fillText(topWarnText.en[Math.floor(((q_startTime % 360) / 360) * topWarnText.en.length)], 337, 53, 553);
         }
 
         if (eewOriginTime.getTime() < (new Date())-480000){
@@ -1849,7 +1846,7 @@ const Routines = {
           context.fillStyle = "#d00";
           context.strokeStyle = "#fff";
           context.lineWidth = 2;
-          context.globalAlpha = 1 - (q_startTime % 60) / 78;
+          context.globalAlpha = 1 - (q_startTime % 72) / 78;
           context.beginPath();
           context.moveTo(eewEpiPos[0]- 6, eewEpiPos[1]-10);
           context.lineTo(eewEpiPos[0]-10, eewEpiPos[1]- 6);
@@ -1870,10 +1867,10 @@ const Routines = {
           context.globalAlpha = 1;
         } else {
           context.fillStyle = "#d00";
-          const t1 = (q_startTime % 60) / 68;
-          const t2 = ((q_startTime + 15) % 60) / 68;
-          const t3 = ((q_startTime + 30) % 60) / 68;
-          const t4 = ((q_startTime + 45) % 60) / 68;
+          const t1 = (q_startTime % 72) / 68;
+          const t2 = ((q_startTime + 18) % 72) / 68;
+          const t3 = ((q_startTime + 36) % 72) / 68;
+          const t4 = ((q_startTime + 54) % 72) / 68;
           context.globalAlpha = 0.5 - t1/2;
           context.beginPath();
           context.arc(eewEpiPos[0], eewEpiPos[1], t1*28.284271, 0, 2*Math.PI);
@@ -2227,13 +2224,13 @@ const Routines = {
 
     // Auto Save
     if (lastSaveTime + 30000 <= Date.now()) savedata();
-    if (q_startTime % 10 === 0){
+    if (q_startTime % 12 === 0){
       const ratio = 100 - ((lastSaveTime - Date.now() + 30000) / 300);
       elements.id.dataSaverBox.style.background = "linear-gradient(90deg, #c5f6f9 " + ratio + "%, #ffffff " + ratio + "%)";
     }
 
     // AudioAPI alarm adjustment
-    if (q_startTime % 8 === 0){
+    if (q_startTime % 10 === 0){
       audioAPI.fun["freq"+(q_startTime%16>7?"B5":"E6")]();
     }
 
@@ -2270,7 +2267,7 @@ const Routines = {
     }
 
     // Show audio informations (10 fps)
-    if((q_startTime % 5) === 1) {
+    if((q_startTime % 6) === 1) {
       for (let i = 0; i < backMsc.length; i++){
         const intCurTm = Math.floor(backMsc[i]?.currentTime - 0);
         const intDurTm = Math.floor(backMsc[i]?.bufferSource?.buffer?.duration);
@@ -2296,6 +2293,11 @@ const Routines = {
         }
       }
     }
+  } catch (error){
+    console.error("Error in main loop:", error);
+  } finally {
+    requestAnimationFrame(() => Routines.main());
+  }
   }
 };
 
@@ -4597,7 +4599,7 @@ const byteToString = byte => {
   sounds.warning.Flood5._defaultGain = elements.id.volFldOc5.valueAsNumber / 100;
   for (const item of Object.keys(sounds)) propLoop(sounds, item);
 
-  setInterval(Routines.main, 20);
+  requestAnimationFrame(Routines.main);
   errorCollector.displayError = false;
 
   speechBase.addSpeaker(new AudioSpeaker("speaker21", "剣崎雌雄", "male", SpeechVersionData["speaker21"], false));
