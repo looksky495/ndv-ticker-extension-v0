@@ -179,9 +179,8 @@
           <div>
             <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-eew" checked><span>: 緊急地震速報</span></label></div>
             <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-quake" checked><span>: 地震情報（調整中）</span></label></div>
-            <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-vpoa50" checked><span>: 記録的短時間大雨情報</span></label></div>
-            <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-ground" checked><span>: 土砂災害警戒情報</span></label></div>
-            <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-specialwarn" checked><span>: 特別警報報知</span></label></div>
+            <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-vpoa50" checked><span>: 気象防災速報（記録的短時間大雨）</span></label></div>
+            <div class="speech-effective"><label><input type="checkbox" id="speech-checkbox-specialwarn" checked><span>: 各種気象特別警報</span></label></div>
           </div>
         </div>
         <div><button id="speech-test1">テスト音声を再生</button></div>
@@ -595,19 +594,19 @@
                 <li><span>時刻指定<img id="schedule-add" src="/img/add.svg"></span><ul id="settings-gain-timer"></ul></li>
                 <li><span>個別調整</span>
                   <ul>
-                    <li>緊急地震速報(初報)：<input type="number" min="0" max="200" value="10" id="volEEWl1">%<button id="voltestEEWl1">テスト</button></li>
-                    <li>緊急地震速報(継続報)：<input type="number" min="0" max="200" value="100" id="volEEWl5">%<button id="voltestEEWl5">テスト</button></li>
-                    <li>緊急地震速報(最終報)：<input type="number" min="0" max="200" value="100" id="volEEWl9">%<button id="voltestEEWl9">テスト</button></li>
-                    <li>緊急地震速報(ビープ音)：<input type="number" min="0" max="200" value="10" id="volEEWh">%<button id="voltestEEWh">テスト(3秒)</button></li>
-                    <li>緊急地震速報(カスタム)：<input type="number" min="0" max="200" value="100" id="volEEWc">%<button id="voltestEEWcustom">テスト</button></li>
-                    <li>緊急地震速報(PLUM法)<a target="_blank" href="https://www.data.jma.go.jp/svd/eew/data/nc/shiryo/setsumeikai170712/170712_3c.pdf"><sup>[?]</sup></a>：<input type="number" min="0" max="200" value="100" id="volEEWp">%<button id="voltestEEWp">テスト</button></li>
-                    <li>土砂災害警戒情報：<input type="number" min="0" max="200" value="100" id="volGL">%<button id="voltestGL">テスト</button></li>
-                    <li>竜巻注意情報：<input type="number" min="0" max="200" value="100" id="volNtc">%<button id="voltestNtc">テスト</button></li>
+                    <li>緊急地震速報 (初報)：<input type="number" min="0" max="200" value="10" id="volEEWl1">%<button id="voltestEEWl1">テスト</button></li>
+                    <li>緊急地震速報 (継続報)：<input type="number" min="0" max="200" value="100" id="volEEWl5">%<button id="voltestEEWl5">テスト</button></li>
+                    <li>緊急地震速報 (最終報)：<input type="number" min="0" max="200" value="100" id="volEEWl9">%<button id="voltestEEWl9">テスト</button></li>
+                    <li>緊急地震速報 (ビープ音)：<input type="number" min="0" max="200" value="10" id="volEEWh">%<button id="voltestEEWh">テスト(3秒)</button></li>
+                    <li>緊急地震速報 (カスタム)：<input type="number" min="0" max="200" value="100" id="volEEWc">%<button id="voltestEEWcustom">テスト</button></li>
+                    <li>緊急地震速報 (PLUM法)<a target="_blank" href="https://www.data.jma.go.jp/svd/eew/data/nc/shiryo/setsumeikai170712/170712_3c.pdf"><sup>[?]</sup></a>：<input type="number" min="0" max="200" value="100" id="volEEWp">%<button id="voltestEEWp">テスト</button></li>
+                    <li>土砂災害危険警報：<input type="number" min="0" max="200" value="100" id="volGL">%<button id="voltestGL">テスト</button></li>
                     <li>気象特別警報：<input type="number" min="0" max="200" value="100" id="volSpW">%<button id="voltestSpW">テスト</button></li>
+                    <li>氾濫危険警報：<input type="number" min="0" max="200" value="100" id="volFldOc4">%<button id="voltestFldOc4">テスト</button></li>
+                    <li>氾濫特別警報：<input type="number" min="0" max="200" value="100" id="volFldOc5">%<button id="voltestFldOc5">テスト</button></li>
+                    <li>竜巻注意情報：<input type="number" min="0" max="200" value="100" id="volNtc">%<button id="voltestNtc">テスト</button></li>
+                    <li>記録的短時間大雨：<input type="number" min="0" max="200" value="100" id="volHvRa">%<button id="voltestHvRa">テスト</button></li>
                     <li>津波情報：<input type="number" min="0" max="200" value="100" id="volTnm">%<button id="voltestTnm">テスト</button></li>
-                    <li>記録的短時間大雨情報：<input type="number" min="0" max="200" value="100" id="volHvRa">%<button id="voltestHvRa">テスト</button></li>
-                    <li>氾濫危険情報：<input type="number" min="0" max="200" value="100" id="volFldOc4">%<button id="voltestFldOc4">テスト</button></li>
-                    <li>氾濫発生情報：<input type="number" min="0" max="200" value="100" id="volFldOc5">%<button id="voltestFldOc5">テスト</button></li>
                   </ul>
                 </li>
                 <li>緊急地震速報警報時の音声をカスタマイズするには？<div style="width: 550px;">

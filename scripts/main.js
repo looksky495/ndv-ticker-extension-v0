@@ -3312,32 +3312,6 @@ const weatherMaintainanceTime = {
   notified: false
 };
 
-async function getMaintainanceData (){
-  const data = await fetch("https://looksky495.github.io/ndv-tickers/maintainance.json").then(res => res.json());
-  const currentTime = Date.now();
-
-  for (const key of data.list){
-    const event = data.detail[key];
-    const start = new Date(event.start);
-    const end = new Date(event.end);
-
-    // status が true の場合、過去のイベントであっても、そのイベントは有効であるとみなす。
-    if (event.status){
-      if (weatherMaintainanceTime.start !== start.getTime()){
-        weatherMaintainanceTime.notified = false;
-      }
-
-      weatherMaintainanceTime.start = start.getTime();
-      weatherMaintainanceTime.end = end.getTime();
-
-      break;
-    }
-  }
-}
-
-setInterval(getMaintainanceData, 5 * 60 * 1000);
-getMaintainanceData();
-
 function weatherInfo(){
   $.ajax({
     type: 'GET',
@@ -3350,12 +3324,6 @@ function weatherInfo(){
       if (viewMode === 2 || viewMode === 1) return;
       const currentTime = Date.now();
 
-      if (!weatherMaintainanceTime.notified && weatherMaintainanceTime.start <= currentTime && currentTime < weatherMaintainanceTime.end){
-        weatherMaintainanceTime.notified = true;
-        NewsOperator.add("メンテナンスのお知らせ", "", "一部の気象情報は、現在メンテナンス中のため、更新を停止しています。", { duration: 40000 });
-        SFXController.play(sounds.start);
-      }
-
       const arr = [];
       let isChange = true;
       $(data).find('entry').each(function (){
@@ -3364,53 +3332,12 @@ function weatherInfo(){
         if (weatherlink.indexOf(linkAttrHref) !== -1) isChange = false;
         arr.push(linkAttrHref);
         if (isChange && titleTextContent !== "早期天候情報" && titleTextContent !== "気象警報・注意報" && titleTextContent !== "気象特別警報・警報・注意報"){
-          if (titleTextContent == "土砂災害警戒情報" && q_startTime <= 300) isChange = false;
           if (titleTextContent == "指定河川洪水予報" && q_startTime <= 300) isChange = false;
         }
 
-        // 15 秒以上経過している場合、かつ情報が更新されている場合にのみ、以下の処理を行う
+        // 5 秒以上経過している場合、かつ情報が更新されている場合にのみ、以下の処理を行う
         if (q_startTime > 300 && isChange){
-          if (titleTextContent === "気象警報・注意報（Ｈ２７）"){
-            if (weatherMaintainanceTime.start <= currentTime){
-              // メンテナンス終了後は気象警報・注意報（Ｈ２７）ではなく気象警報・注意報（Ｒ０６）を使用するため、終了条件を設定しない。
-              return;
-            }
-
-            $.ajax({
-              type: 'GET',
-              url: linkAttrHref,
-              dataType: 'xml',
-              cache: true,
-              success: function(xmlRoot){
-                const title = "気象警報・注意報 " + xmlRoot.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Name').textContent;
-                // const text = xmlRoot.querySelector('Report > Head > Headline > Text').textContent;
-                for (const item1 of Array.from(xmlRoot.querySelector('Warning[type="気象警報・注意報（一次細分区域等）"]').getElementsByTagName("Item"))){
-                  const alertPlace = AreaForecastLocalM.warn[item1.querySelector("Area > Code").textContent];
-                  for (const item2 of Array.from(item1.getElementsByTagName("Kind"))){
-                    const alertStatus = item2.getElementsByTagName("Status")[0].textContent;
-                    const lastAlertType = item2.querySelector("LastKind > Name")?.textContent;
-                    const alertType = item2.getElementsByTagName('Name')?.[0]?.textContent ?? "";
-                    if (alertStatus === "発表"){
-                      const mainText = "【 " + alertPlace + " 】 発表：" + alertType;
-                      const nextKinds = [];
-                      for (const item3 of Array.from(item2.getElementsByTagName("NextKind"))){
-                        nextKinds.push(item3.getElementsByTagName("Sentence")[0].textContent);
-                      }
-                      if (!nextKinds.length) nextKinds.push("");
-                      for (const item3 of nextKinds) NewsOperator.add(title, item3, mainText);
-                      //t += AreaForecastLocalM.warn[$(int).find('Area Code').text()] + "に" + $($(int2).find('Name')[0]).text() + "発表　";
-                    } else if (alertStatus === "特別警報から警報" || alertStatus === "特別警報から注意報"){
-                      NewsOperator.add(title, "", "【 " + alertPlace + " 】 " + lastAlertType + " から " + alertType + " へ切り替え");
-                    } else if (alertStatus === "警報から注意報"){
-                      NewsOperator.add(title, "", "【 " + alertPlace + " 】 解除：" + lastAlertType);
-                    } else if (alertStatus === "解除"){
-                      NewsOperator.add(title, "", "【 " + alertPlace + " 】 解除：" + alertType);
-                    }
-                  }
-                }
-              }
-            });
-          } else if (titleTextContent.startsWith("気象警報・注意報（Ｒ０６）")){
+          if (titleTextContent.startsWith("気象警報・注意報（Ｒ０６）")){
             $.ajax({
               type: 'GET',
               url: linkAttrHref,
@@ -3430,7 +3357,9 @@ function weatherInfo(){
                     const area = AreaForecastLocalM.tornado[item.querySelector('Area > Code').textContent];
                     const title = c.querySelector('Head > Title').textContent + (c.querySelector('Serial').textContent === "1" ? "　発表中" : "　継続中" );
                     const description = c.querySelector('Head > Headline > Text').textContent;
-                    NewsOperator.add(title, description, area + "に竜巻注意情報が発表されています。");
+                    NewsOperator.add(title, description, area + "に" + (
+                      title.includes("注意") ? "竜巻注意": title.includes("目撃") ? "竜巻目撃" : ""
+                    ) + "情報が発表されています。");
                   }
                   SFXController.play(sounds.warning.Notice);
                 }
@@ -3440,107 +3369,6 @@ function weatherInfo(){
                 // ValidDateTime : 有効期限
               }
             });
-          } else if (titleTextContent.search("記録的短時間大雨情報") !== -1){
-            $.ajax({
-              type: 'GET',
-              url: linkAttrHref,
-              dataType: 'xml',
-              cache: true,
-              success: function(c){
-                if (c.querySelector('Headline > Information > Item > Kind > Condition').textContent !== "取消"){
-                  try {
-                    const data = parseRainfallData(c.querySelector("Headline > Text").textContent);
-                    const areaen = AreaForecastLocalM.warning[c.querySelector("Headline Area > Code").textContent].en_US;
-                    if (!data.length) throw new Error("Error occurred while parsing text.");
-                    for (const current of data){
-                      const time = current.datetime;
-                      const areajp = current.prefecture;
-                      for (const event of current.locations){
-                        NewsOperator.add('【記録的短時間大雨情報】 ' + areajp + ' (' + time + ')', "", "　" + event.name + " " + event.rainfall + "mm/h" + (event.isOrMore ? " 以上" : "") + " （" + ((event.isApproximate || event.isOrMore) ? "解析結果" : "観測値") + "）　");
-                        NewsOperator.add('* Heavy Rain Observed * ' + areaen + ' (' + time + ')', "", "　" + (event.isOrMore ? "Over " : "") + event.rainfall + "mm/h (" + ((event.isApproximate || event.isOrMore) ? "Analysis" : "Observation") + ") at " + event.name + "　");
-                      }
-                    }
-                  } catch (e){
-                    console.error(e);
-                    NewsOperator.add('記録的短時間大雨情報', c.querySelector('Report > Head > Title').textContent, c.querySelector('Headline > Text').textContent)
-                    NewsOperator.add('Heavy Rain Information', c.querySelector('Report > Head > Title').textContent, c.querySelector('Headline > Text').textContent)
-                  }
-                  if (elements.id.speechCheckboxVPOA50.checked) speechBase.start([
-                    { type: "wait", time: 1000 },
-                    { type: "path", speakerId: "speaker8", path: "VPOA50_issued" }
-                  ]);
-                  SFXController.play(sounds.warning.HeavyRain);
-                }
-              }
-            });
-          } else if (titleTextContent === "土砂災害警戒情報"){
-            if (weatherMaintainanceTime.start <= currentTime){
-              // メンテナンス終了後は土砂災害警戒情報の受信をしないため、終了時間を判定しない。
-              return;
-            }
-
-            $.ajax({
-              type: 'GET',
-              url: linkAttrHref,
-              dataType: 'xml',
-              cache: true,
-              success: function(c){
-                if ($(c).find('Headline > Information > Item > Kind > Condition').text() === "解除"){
-                  NewsOperator.add('土砂災害警戒情報　解除', c.querySelector("Headline > Text").textContent, "<土砂災害警戒情報 解除>　対象地域：" + c.querySelector('TargetArea > Name').textContent);
-                  if (elements.id.speechCheckboxGround.checked) speechBase.start([
-                    { type: "path", speakerId: "speaker8", path: "ground.area."+$(c).find('TargetArea > Code').text() },
-                    { type: "path", speakerId: "speaker8", path: "ground.clear" }
-                  ]);
-                } else {
-                  const headline = Array.from(c.querySelectorAll("Headline Item"));
-                  for (const item of headline){
-                    const areatexts = [];
-                    let tekisutoooaaaaa = "";
-                    for (const area of item.querySelectorAll("Area > Name").toArray()){
-                      tekisutoooaaaaa += " "+area.textContent;
-                      if (tekisutoooaaaaa.length > 45) areatexts.push(tekisutoooaaaaa), tekisutoooaaaaa = "";
-                    }
-                    if (tekisutoooaaaaa) areatexts.push(tekisutoooaaaaa);
-                    const infoType = item.fun2("Kind > Condition").textContent;
-                    for (const area of areatexts) NewsOperator.add('土砂災害警戒情報　' + c.querySelector('TargetArea > Name').textContent, c.querySelector('Headline > Text').textContent, "［"+infoType+"］"+area);
-                    if (infoType === "発表" && elements.id.speechCheckboxGround.checked) speechBase.start([
-                      { type: "wait", time: 500 },
-                      { type: "path", speakerId: "speaker8", path: "ground.area."+$(c).find('TargetArea > Code').text() },
-                      { type: "path", speakerId: "speaker8", path: "ground.issue" }
-                    ]);
-                  }
-                  SFXController.play(sounds.warning.GroundLoosening);
-                }
-              }
-            });
-          } else if (titleTextContent === "気象特別警報報知") {
-            $.ajax({
-              type: 'GET',
-              url: linkAttrHref,
-              dataType: 'xml',
-              cache: true,
-              success: function(c){
-                if (c.querySelector('Head > Headline > Information[type="気象特別警報報知（府県予報区等）"] > Item > Kind > Name').textContent !== "解除"){
-                  NewsOperator.add('特別警報を発表中', '', '発表中の地域では、重大な危険が差し迫った異常な状況');
-                  NewsOperator.add('Emergency weather warnings are in effect.', '', 'This is an extraordinary situation with serious potential for disaster conditions.');
-                  const prefInfo = c.querySelector('Head > Headline > Information[type="気象特別警報報知（府県予報区等）"] > Item > Areas > Area');
-                  for (const e2 of c.querySelectorAll('Head > Headline > Information[type="気象特別警報報知（市町村等）"] > Item')){
-                    NewsOperator.add(
-                      "【" + Array.from(e2.querySelectorAll('Kind > Name')).map(item => item.textContent).join("・") + "】",
-                      "", "［発表中］" + OfficeID2PrefName[prefInfo.querySelector('Code').textContent] + e2.querySelector('Areas > Area > Name').textContent
-                    );
-                  }
-                  if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
-                    { type: "wait", time: 3500 },
-                    { type: "path", speakerId: "speaker8", path: "warning.prefecture." + prefInfo.querySelector('Code').textContent },
-                    { type: "path", speakerId: "speaker8", path: "warning.special_warn" }
-                  ]);
-                  SFXController.play(sounds.warning.Emergency);
-                } else {
-                  NewsOperator.add('特別警報は警報へ', '発表されていた特別警報は警報へ切り替えられましたが、引き続き最新情報にご注意ください。', '警報に切り替え：' + c.querySelector('Head > Headline > Information[type="気象特別警報報知（府県予報区等）"] > Item > Areas > Area > Name').textContent);
-                }
-              }
-            });
           } else if (titleTextContent === "指定河川洪水予報"){
             $.ajax({
               type: 'GET',
@@ -3548,35 +3376,7 @@ function weatherInfo(){
               dataType: 'xml',
               cache: true,
               success: function(c){
-                if (weatherMaintainanceTime.end <= currentTime){
-                  // 切り替え完了後
                   weatherVXKOii(NewsOperator, c);
-                } else if (currentTime < weatherMaintainanceTime.start){
-                  // 切り替え前
-                  weatherVXKOii_old(NewsOperator, c);
-                }
-              }
-            });
-          } else if (titleTextContent === "全般台風情報"){
-            // メンテナンス終了後は全般台風情報は発表されない。削除対象。
-            $.ajax({
-              type: 'GET',
-              url: linkAttrHref,
-              dataType: 'xml',
-              cache: true,
-              success: function(c){
-                const texts = c.getElementsByTagName("Text");
-                const headcomment = texts[0].textContent.replaceAll(/(\s){1,}/g,"　").trim().split("。").slice(0, -1).map(line => line + "。");
-                let bodycomment = texts[1].textContent.split("\n\n").map(text => text.replaceAll(/(\s){1,}/g,"　"));
-                if (bodycomment[0] === "なし") bodycomment = [""];
-                const title = c.querySelector("Head > Title").textContent;
-                for (const line of headcomment){
-                  NewsOperator.add(title, "全般台風情報　ヘッドライン", line);
-                }
-                for (const key in bodycomment) {
-                  const item = bodycomment[key];
-                  NewsOperator.add(title, item, "", {duration: item.length * 150});
-                }
               }
             });
           } else if (titleTextContent === "全般気象解説情報"){
@@ -3590,6 +3390,16 @@ function weatherInfo(){
                 weatherVPZJ51(c);
               }
             });
+          } else if (titleTextContent === "府県気象防災速報"){
+            $.ajax({
+              type: 'GET',
+              url: linkAttrHref,
+              dataType: 'xml',
+              cache: true,
+              success: function(c){
+                weatherVPBS50(c);
+              }
+            });
           }
         }
       });
@@ -3600,6 +3410,84 @@ function weatherInfo(){
     }
   });
 }
+
+/**
+ * @param {XMLDocument} dataXml
+ */
+const weatherVPBS50 = async dataXml => {
+  const area = await DataOperator.area.getData();
+
+  const infoType = dataXml.querySelector('Headline > Information > Item > Kind > Condition').textContent;
+  if (infoType === "取消"){
+    NewsOperator.add(dataXml.querySelector("Head > Title").textContent, dataXml.querySelector("Head > Headline > Text").textContent, "");
+    return;
+  }
+
+  const reportTitle = dataXml.querySelector("Head > Title").textContent;
+  const headlineText = dataXml.querySelector("Head > Headline > Text").textContent;
+  const informations = {};
+
+  for (const kind of dataXml.querySelectorAll('Head > Headline > Information[type="情報タグ"] > Item > Kind')){
+    const kindType = kind.querySelector("Name").textContent;
+    const kindConditions = kind.querySelector("Condition").textContent;
+    informations[kindType] = kindConditions;
+  }
+
+  if (informations["情報タグ"] === "線状降水帯直前"){
+    NewsOperator.add(reportTitle, headlineText, "");
+  } else if (informations["情報タグ"] === "線状降水帯発生"){
+    NewsOperator.add(reportTitle, headlineText, "線状降水帯が発生しています。");
+  } else if (informations["情報タグ"] === "記録雨"){
+    try {
+      const areaCode = dataXml.querySelector('Head > Headline > Information[type="情報タグ"] > Item > Areas > Area > Code').textContent;
+      const areaData = area.offices[area.class10s[areaCode].parent];
+      const areaJP = areaData.name.replace("（奄美地方除く）", "");
+      const areaEN = areaData.enName.replace(" (Excluding Amami)", "");
+
+      const points = dataXml.querySelectorAll('Body > MeteorologicalInfos[type="観測実況"] > MeteorologicalInfo > Item');
+      for (const point of points){
+        const observedTime = new Date(point.querySelector('Kind > Property > PrecipitationPart > Time').textContent);
+        const observedTimeStr = observedTime.toLocaleTimeString("ja", {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+
+        const pointName = point.querySelector('Area > Name').textContent;
+        const isApproxPoint = point.querySelector('Area > Status')?.textContent === "付近";
+
+        const precipitationElement = point.querySelector('Kind > Property > PrecipitationPart > Precipitation');
+        const precValue = precipitationElement.textContent;
+        const precType = precipitationElement.getAttribute("type");
+        const precCondition = precipitationElement.getAttribute("condition");
+        const isAnalysis = precType === "前１時間解析雨量";
+
+        if (!precType.startsWith("前１時間")) continue; // 記録雨は前1時間の降水量のみ対象のはずだからそれ以外はスキップ
+
+        NewsOperator.add(
+          "記録的短時間大雨　" + areaJP + " （" + observedTimeStr + "）", "",
+          `　${pointName}　${precCondition === "約" ? "約" : ""} ${precValue} mm/h ${precType === "以上" ? "以上" : ""} （${isAnalysis ? "解析" : "観測値"}）`
+        );
+        NewsOperator.add(
+          "** Short-term Heavy Rain ** in " + areaEN + " (" + observedTimeStr + ")", "",
+          `　${pointName}　${precCondition === "約" ? "Approx. " : ""} ${precValue} mm/h ${precType === "以上" ? "or more" : ""} (${isAnalysis ? "Analysis" : "Observation"}) at ${pointName}`
+        );
+      }
+    } catch (e){
+      console.error(e);
+      for (const sentence of headlineText.split(/[\s　]+/)){
+        NewsOperator.add(reportTitle, "", sentence);
+      }
+    }
+
+    if (elements.id.speechCheckboxVPOA50.checked) speechBase.start([
+      { type: "wait", time: 1000 },
+      { type: "path", speakerId: "speaker8", path: "VPOA50_issued" }
+    ]);
+    SFXController.play(sounds.warning.HeavyRain);
+  } else if (informations["情報タグ"] === "短時間大雪"){
+    NewsOperator.add(reportTitle, headlineText, "");
+  }
+};
 
 /**
  * @param {XMLDocument} dataXml
@@ -3621,7 +3509,7 @@ const weatherVPZJ51 = dataXml => {
     const descriptionText = meteorologicalText + "　　" + disasterPreventionText;
     NewsOperator.add(reportTitle, descriptionText, "", { duration: descriptionText.length * 150 });
   }
-}
+};
 
 /**
  * @param {XMLDocument} dataXml
@@ -3690,6 +3578,7 @@ const weatherVPWWii = dataXml => {
     }
 
     const alertName = city.querySelector('Kind > Name').textContent;
+    const alertCode = city.querySelector('Kind > Code').textContent;
     const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
     const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
 
@@ -3711,7 +3600,9 @@ const weatherVPWWii = dataXml => {
       // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
       NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: 8000 });
-      SFXController.play(sounds.warning.GroundLoosening);
+      if ([39, 49].includes(alertCode - 0)){ // 危険警報以上
+        SFXController.play(sounds.warning.GroundLoosening);
+      }
     } else if (reportType.endsWith("（高潮）")){ // VPWW57
       const properties = city.querySelectorAll('Kind > Property');
       for (const property of properties){
@@ -4522,7 +4413,6 @@ const byteToString = byte => {
       document.getElementById("speech-checkbox-eew").checked = data.settings?.speech?.options?.EEW ?? true;
       document.getElementById("speech-checkbox-quake").checked = data.settings?.speech?.options?.Quake ?? true;
       document.getElementById("speech-checkbox-vpoa50").checked = data.settings?.speech?.options?.VPOA50 ?? true;
-      document.getElementById("speech-checkbox-ground").checked = data.settings?.speech?.options?.Ground ?? true;
       document.getElementById("speech-checkbox-specialwarn").checked = data.settings?.speech?.options?.SPwarn ?? true;
 
       t_viewType = (document.getElementById("viewTsunamiType").value = data.settings.viewTsunamiType || "1") - 0;
