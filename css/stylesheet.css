@@ -309,32 +309,32 @@ button.switch-button {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
-.nt-command-badge[data-kind='rank'] {
+:is(.nt-command-badge *)[data-kind='rank'] {
   background: #fff5f0;
   color: #c74900;
   border-color: #ffd9c0;
 }
-.nt-command-badge[data-kind='precip'] {
+:is(.nt-command-badge *)[data-kind='precip'] {
   background: #f0f7fb;
   color: #0077cc;
   border-color: #c8e6ff;
 }
-.nt-command-badge[data-kind='snow'] {
+:is(.nt-command-badge *)[data-kind='snow'] {
   background: #f0f4ff;
   color: #003da3;
   border-color: #d9e4ff;
 }
-.nt-command-badge[data-kind='live'] {
+:is(.nt-command-badge *)[data-kind='live'] {
   background: #f0fef0;
   color: #1e6b06;
   border-color: #c8f5c8;
 }
-.nt-command-badge[data-kind='river'] {
+:is(.nt-command-badge *)[data-kind='river'] {
   background: #f0f7ff;
   color: #004fbf;
   border-color: #ccebff;
 }
-.nt-command-badge[data-kind='evac'] {
+:is(.nt-command-badge *)[data-kind='evac'] {
   background: #fff0f0;
   color: #d00000;
   border-color: #ffcccc;

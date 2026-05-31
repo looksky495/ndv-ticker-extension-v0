@@ -623,8 +623,9 @@ const normalText = (() => {
       // コマンドの選択肢を追加
       for (const cmd of COMMANDS){
         const option = document.createElement("option");
-        option.value = cmd.id;
         option.textContent = cmd.text;
+        option.dataset.kind = cmd.kind;
+        if (cmd.id === null) option.value = ""; else option.value = cmd.id;
         if (cmd.id === commandInfo.id) option.selected = true;
         badgeSelect.appendChild(option);
       }
