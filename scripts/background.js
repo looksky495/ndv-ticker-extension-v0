@@ -53,6 +53,7 @@ chrome.storage.sync.get(['mode0', 'mode3'], storageData => {
     ],
     mode3: [ "aaaaああああ｜｜", "文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえおabc-0234", "text" ],
     settings: {
+      tickerSpeed: 4,
       autorecord: false,
       fixitem: [false, false, false, false, false],
       soraview: false,

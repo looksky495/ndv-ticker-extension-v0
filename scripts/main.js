@@ -4364,6 +4364,10 @@ const byteToString = byte => {
       if (currentVerID < 22){ /* β0.3.4以前 */ data.settings.volume.eewL = [ data.settings.volume.eewL, data.settings.volume.eewL, data.settings.volume.eewL ] }
       // if (currentVerID < 23){ /* β0.4.0以前 */ alert(data.app.lastVer+" からのバージョンアップを検知しました。\nカスタム音声の場所が、 EEW_Warning.（以下省略） → 「eew-custom.mp3」のみに変更されています。\nカスタム音声を使用している場合、手動で名前を変更するようにお願いします。"); }
       if (currentVerID < 33){ /* β0.7.0以前 */
+        if (data.settings?.tickerSpeed){ // 60 fps に
+          data.settings.tickerSpeed *= Math.floor(50 / 6) * 10;
+        }
+
         const mode0new = [];
         for (let i = 0; i < 5; i ++){
           const convShortcutList = [
@@ -4397,7 +4401,7 @@ const byteToString = byte => {
               content: data.mode0.main[i],
               enabled: true,
               type: "shortcut",
-              shortcutId: data.mode0.main[i]
+              shortcutId: data.mode0.main[i].slice(1, -1)
             });
           } else {
             mode0new.push({
@@ -4422,7 +4426,7 @@ const byteToString = byte => {
     document.getElementById('BNtitle').value = data.mode3[0];
     document.getElementById('BNtext1').value = data.mode3[1];
     document.getElementById('BNtext2').value = data.mode3[2];
-    changeTextSpeed(data.settings?.tickerSpeed ?? 5);
+    changeTextSpeed(data.settings?.tickerSpeed ?? 4);
     document.getElementById('isSoraview').checked = data.settings.soraview;
     document.getElementById('setClipEEW').checked = data.settings.clipboard.eew;
     document.getElementById('setClipQuake').checked = data.settings.clipboard.quake;
