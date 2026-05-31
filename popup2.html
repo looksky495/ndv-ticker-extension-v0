@@ -67,24 +67,18 @@
             <td><input type="checkbox" id="viewLittleTsunami" checked disabled></td>
           </tr></tbody>
         </table>
-        <hidden style="display: none;">自動更新URL: <input type="text" id="NormalMes" value="default_message.json"><input type="checkbox" id="isNormalMes" value="自動更新有効/無効"></hidden>
-        <table class="regular-table-0"><tbody>
-          <tr><td>1.</td><td>タイトル</td><td><input type="text" id="title1" class="normal-title" value="最高気温(℃)"></td><td>本文</td><td><input type="text" id="message1" class="normal-text" value="&lt;weather/temperature/high&gt;"></td><!--<td><input type="radio" name="scrollfix" value="1"></td>--></tr>
-          <tr><td>2.</td><td>タイトル</td><td><input type="text" id="title2" class="normal-title" value="最低気温(℃)"></td><td>本文</td><td><input type="text" id="message2" class="normal-text" value="&lt;weather/temperature/low&gt;"></td><!--<td><input type="radio" name="scrollfix" value="1"></td>--></tr>
-          <tr><td>3.</td><td>タイトル</td><td><input type="text" id="title3" class="normal-title" value="時降水量(mm/h)"></td><td>本文</td><td><input type="text" id="message3" class="normal-text" value="&lt;weather/rain/1h&gt;"></td><!--<td><input type="radio" name="scrollfix" value="1"></td>--></tr>
-          <tr><td>4.</td><td>タイトル</td><td><input type="text" id="title4" class="normal-title" value="日降水量(mm/d)"></td><td>本文</td><td><input type="text" id="message4" class="normal-text" value="&lt;weather/rain/24h&gt;"></td><!--<td><input type="radio" name="scrollfix" value="1"></td>--></tr>
-          <tr><td>5.</td><td>タイトル</td><td><input type="text" id="title5" class="normal-title" value="最大風速(m/s)"></td><td>本文</td><td><input type="text" id="message5" class="normal-text" value="&lt;weather/wind&gt;"></td><!--<td><input type="radio" name="scrollfix" value="1"></td>--></tr>
-        </tbody></table>
-        <button type="button" name="goMessage">入力された内容を反映して通常画面に復帰する（ニュース速報はリセットされる）</button>
+
+        <!-- 通常テキスト入力欄 -->
+        <div id="normalText.textList" class="normal-text-block" style="z-index:20;">
+          <div class="nt-toolbar">
+            <div class="nt-toolbar-left" style="display:flex; gap:6px;">
+              <button type="button" id="normalText.addText" class="btn tiny">＋ 追加</button>
+            </div>
+          </div>
+          <div class="nt-cards" id="normalTextsCards" aria-label="通常テキスト一覧"></div>
+        </div>
         <button type="button" name="skipMessage">現在の表示項目をスキップ</button>
         <!-- <input type="radio" name="scrollfix" value="0"> -->
-        <div>
-          <h3>コマンド機能とは？</h3>
-          <div>
-            <p>通常画面の「本文」にはスクロールさせたい文章を入力できますが、そこに「&lt;weather/temperature/current&gt;」などの「コマンド」を入力すると、コマンドに対応した機能を使って文章を出力することができます。</p>
-            <p><a href="./disp-commands.html" target="_blank" rel="noopener noreferrer">標準コマンド一覧表</a><br></p>
-          </div>
-        </div>
       </div>
       <div class="tab-item opt-hide">
         <h2>緊急地震速報<span id="eewTime">--:--:--</span></h2>

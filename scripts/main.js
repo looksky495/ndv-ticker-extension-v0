@@ -402,26 +402,313 @@ const shindoListJP = ["","1","2","3","4","5弱以上","5弱","5強","6弱","6強
 const shindoListNHK = ["","1","2","3","4","?","5-","5+","6-","6+","7"]
 
 // variables for weather informations
+const normalText = (() => {
+  const table = document.getElementById("normalTextsTable");
+  const host = document.getElementById("normalTextsCards");
+
+  const COMMANDS = [
+    { text: 'コマンドなし', id: null, kind: 'text' },
+    { text: '最高気温（ランキング）', id: "weather/temperature/high", kind: 'rank' },
+    { text: '最低気温（ランキング）', id: "weather/temperature/low", kind: 'rank' },
+    { text: '1時間降水量（ランキング）', id: "weather/rain_rank/1h", kind: 'rank' },
+    { text: '24時間降水量（ランキング）', id: "weather/rain_rank/1d", kind: 'rank' },
+    { text: '風速（ランキング）', id: "weather/wind_rank", kind: 'rank' },
+    { text: '実況気温', id: "weather/temperature/current", kind: 'live' },
+    { text: '過去10分の降水量', id: "weather/rain/10m", kind: 'precip' },
+    { text: '過去1時間の降水量', id: "weather/rain/1h", kind: 'precip' },
+    { text: '過去3時間の降水量', id: "weather/rain/3h", kind: 'precip' },
+    { text: '過去24時間の降水量', id: "weather/rain/24h", kind: 'precip' },
+    { text: '現在の湿度', id: "weather/humidity", kind: 'live' },
+    { text: '現在の風速', id: "weather/wind", kind: 'live' },
+    { text: '現在の日照時間', id: "weather/sun1h", kind: 'live' },
+    { text: '現在の積雪高さ', id: "weather/snow/height", kind: 'snow' },
+    { text: '過去1時間の降雪量', id: "weather/snow/1h", kind: 'snow' },
+    { text: '過去6時間の降雪量', id: "weather/snow/6h", kind: 'snow' },
+    { text: '過去12時間の降雪量', id: "weather/snow/12h", kind: 'snow' },
+    { text: '過去24時間の降雪量', id: "weather/snow/24h", kind: 'snow' },
+    { text: '現在の気圧', id: "weather/pressure", kind: 'live' },
+    { text: '河川情報', id: "weather/river", kind: 'river' },
+    { text: '気象警報・注意報', id: "weather/warn", kind: 'warn' },
+    { text: '避難情報', id: "weather/evacuation", kind: 'evac' },
+    { text: '避難情報（緊急）', id: "weather/evacuation/emergency", kind: 'evac' },
+  ];
+
+  const ICONS = {
+    up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5 5 12h4v7h6v-7h4L12 5z"/></svg>',
+    down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19l7-7h-4V5h-6v7H5l7 7z"/></svg>',
+    delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.71a.996.996 0 0 0-1.41 0L12 10.59 7.11 5.7A.996.996 0 1 0 5.7 7.11L10.59 12l-4.88 4.88a.996.996 0 1 0 1.41 1.41L12 13.41l4.88 4.88a.996.996 0 1 0 1.41-1.41L13.41 12l4.88-4.88a.996.996 0 0 0-.01-1.41z"/></svg>'
+  };
+
+  /**
+   * @typedef {{title: string, content: string, enabled: boolean, type: "custom", shortcutId: null}} CustomTextItem
+   * @typedef {{title: string, content: string, enabled: boolean, type: "shortcut", shortcutId: string}} ShortcutTextItem
+   * @type {Array<CustomTextItem|ShortcutTextItem>}
+   */
+  const textList = [];
+
+  document.getElementById('normalText.addText')?.addEventListener("click", function (){
+    textList.push({ title: "NEW TITLE", content: "NEW TEXT", enabled: true, type: "custom", shortcutId: null });
+    render();
+  });
+
+  /**
+   * @param {number} from 移動対象のインデックス
+   * @param {number} distance `from`からの移動距離（正の数で下方向、負の数で上方向）
+   * @returns
+   */
+  const moveCard = function (from, distance){
+    const to = from + distance;
+    if (to < 0 || to >= textList.length) return;
+    const temp = textList[from];
+    textList.splice(from, 1);
+    textList.splice(to, 0, temp);
+    render();
+  };
+
+  const deleteCard = function (index){
+    textList.splice(index, 1);
+    render();
+  };
+
+  const updateCommand = function (index, commandId){
+    const commandInfo = COMMANDS.find(cmd => cmd.id === commandId);
+    if (!commandInfo) return;
+
+    const item = textList[index];
+    item.type = "shortcut";
+    item.shortcutId = commandInfo.id;
+    render();
+  };
+
+  const updateTitle = function (index, title){
+    const item = textList[index];
+    item.title = title;
+    // タイピング中に再描画するとカーソル位置がリセットされてしまうため、再描画はしない
+    Routines.md0title();
+  };
+
+  const updateContent = function (index, content){
+    const item = textList[index];
+    item.content = content;
+    // タイピング中に再描画するとカーソル位置がリセットされてしまうため、再描画はしない
+  };
+
+  host.addEventListener("click", (event => {
+    const card = event.target.closest(".nt-card");
+    const index = card.dataset.index - 0;
+    const field = event.target.dataset.field;
+
+    if (event.target.closest(".delete")){
+      deleteCard(index);
+    } else if (event.target.closest(".up")){
+      moveCard(index, -1);
+    } else if (event.target.closest(".down")){
+      moveCard(index, 1);
+    } else if (event.target.closest(".toggle")){
+      const item = textList[index];
+      item.enabled = !item.enabled;
+      render();
+    }
+  }).bind(this));
+
+  host.addEventListener("change", (event => {
+    const card = event.target.closest(".nt-card");
+    if (!card) return;
+
+    const index = card.dataset.index - 0;
+    if (event.target.matches(".nt-command-badge")){
+      updateCommand(index, event.target.value);
+    }
+  }).bind(this));
+
+  host.addEventListener("input", (event => {
+    const card = event.target.closest(".nt-card");
+    if (!card) return;
+
+    const index = card.dataset.index - 0;
+    if (event.target.matches(".nt-title-input")){
+      updateTitle(index, event.target.value);
+    } else if (event.target.matches(".nt-text-input")){
+      updateContent(index, event.target.value);
+    }
+  }).bind(this));
+
+  // ドラッグ & ドロップによる並び替えの実装
+  (function dndHandler(){
+    let draggingIndex = null;
+
+    host.addEventListener("dragstart", event => {
+      const card = event.target.closest(".nt-card");
+      if (!card) return;
+      draggingIndex = card.dataset.index - 0;
+      card.classList.add("dragging");
+    });
+
+    host.addEventListener("dragend", event => {
+      const card = event.target.closest(".nt-card");
+      if (!card) return;
+      card.classList.remove("dragging");
+      for (const dragOverCard of host.querySelectorAll(".drag-over")){
+        dragOverCard.classList.remove("drag-over");
+      }
+      draggingIndex = null;
+    });
+
+    host.addEventListener("dragover", event => {
+      event.preventDefault();
+      const card = event.target.closest(".nt-card");
+      if (!card) return;
+      card.classList.add("drag-over");
+    });
+
+    host.addEventListener("dragleave", event => {
+      const card = event.target.closest(".nt-card");
+      if (!card) return;
+      card.classList.remove("drag-over");
+    });
+
+    host.addEventListener("drop", event => {
+      event.preventDefault();
+      const card = event.target.closest(".nt-card");
+      if (!card || draggingIndex === null) return;
+
+      const dropIndex = card.dataset.index - 0;
+      card.classList.remove("drag-over");
+      if (draggingIndex === dropIndex) return;
+
+      moveCard(draggingIndex, dropIndex - draggingIndex);
+    });
+  })();
+
+  const render = () => {
+    if (!host) return;
+    host.innerHTML = "";
+
+    for (let index = 0; index < textList.length; index ++){
+      const item = textList[index];
+
+      // カードのルート作成
+      const commandInfo = COMMANDS.find(cmd => cmd.id === item.shortcutId);
+      const card  = document.createElement("div");
+      card.classList.add("nt-card");
+      card.dataset.index = index;
+      card.dataset.kind = commandInfo.kind;
+      card.draggable = true;
+
+      // カードのヘッダー作成
+      const header = document.createElement("div");
+      header.classList.add("nt-card-header");
+      header.innerHTML = `<div class="nt-index nt-reorder-handle" title="ドラッグで並び替え">${index + 1}</div>`;
+
+      // タイトル入力欄の作成
+      const titleWrapper = document.createElement("div");
+      titleWrapper.classList.add("nt-title-wrap");
+
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.classList.add("Ntitle");
+      titleInput.classList.add("nt-title-input");
+      titleInput.value = item.title || "";
+      titleInput.dataset.field = "title";
+      titleWrapper.appendChild(titleInput);
+      header.appendChild(titleWrapper);
+
+      // コマンド選択の作成
+      const badgeWrapper = document.createElement("div");
+      badgeWrapper.classList.add("nt-command-badge-wrapper");
+      const badgeSelect = document.createElement("select");
+      badgeSelect.classList.add("nt-command-badge");
+      badgeSelect.dataset.field = "id";
+      badgeSelect.dataset.kind = commandInfo.kind;
+
+      // コマンドの選択肢を追加
+      for (const cmd of COMMANDS){
+        const option = document.createElement("option");
+        option.value = cmd.id;
+        option.textContent = cmd.text;
+        if (cmd.id === commandInfo.id) option.selected = true;
+        badgeSelect.appendChild(option);
+      }
+      badgeWrapper.appendChild(badgeSelect);
+      header.appendChild(badgeWrapper);
+
+      // 操作ボタンの作成
+      const actions = document.createElement("div");
+      actions.classList.add("nt-actions");
+      const toggleLabel = item.enabled ? "ON" : "OFF";
+      actions.innerHTML = `
+        <button class="nt-icon-btn up" title="上へ" aria-label="上へ">${ICONS.up}</button>
+        <button class="nt-icon-btn down" title="下へ" aria-label="下へ">${ICONS.down}</button>
+        <button class="nt-icon-btn toggle" data-state="${item.enabled ? "on" : "off"}" title="${toggleLabel}" aria-label="${toggleLabel}">
+          <span style="font-size: 10px; margin-left: 4px; font-weight: 600; letter-spacing: .5px;">${toggleLabel}</span>
+        </button>
+        <button class="nt-icon-btn delete danger" title="削除" aria-label="削除">${ICONS.delete}</button>`;
+      header.appendChild(actions);
+      card.appendChild(header);
+
+      // 本文
+      const body = document.createElement("div");
+      body.classList.add("nt-card-body");
+      const textInput = document.createElement("input");
+      textInput.classList.add("nt-text-input");
+      textInput.type = "text";
+      textInput.value = item.content || "";
+      textInput.disabled = item.type === "shortcut";
+      textInput.dataset.field = "content";
+      body.appendChild(textInput);
+      card.appendChild(body);
+      host.appendChild(card);
+    }
+  };
+
+  return {
+    get enabledText() {
+      return textList.filter(item => item.enabled);
+    },
+    rawText: textList,
+    /** @type {number} */
+    get enabledSize() {
+      return this.enabledText.length;
+    },
+    /** @type {Map<string, string>} */
+    commands: new Map(),
+    /** @type {number} */
+    viewingIndex: 0,
+
+    /**
+     * @param {Array<CustomTextItem|ShortcutTextItem>} changeTo
+     */
+    overrideText: function (changeTo){
+      textList.length = 0;
+      for (const item of changeTo){
+        textList.push(item);
+      }
+      render();
+    },
+
+    getTitle: function (index){
+      return this.enabledText[index]?.enabled ? this.enabledText[index].title : "";
+    },
+    getTextContent: function (index){
+      const target = this.enabledText[index];
+      if (!target) return "";
+
+      if (target.type === "custom"){
+        return target.content;
+      } else if (target.type === "shortcut"){
+        return this.commands.has(target.shortcutId) ? this.commands.get(target.shortcutId) : "取得中...";
+      } else {
+        return "";
+      }
+    }
+  };
+})();
+
 var textSpeed = 5,
     viewMode = 0,
     language = "Ja",
     uptimeCount = 0,
-    directTexts = [
-      '<weather/temperature/high>',
-      '<weather/temperature/low>',
-      '<weather/rain/1h>',
-      '<weather/rain/24h>',
-      '<weather/wind>',
-      '最高気温(℃)',
-      '最低気温(℃)',
-      '時降水量(mm/h)',
-      '日降水量(mm/d)',
-      '最大風速(m/s)'
-    ],
-    commandShortcuts = {},
     textCmdIds = [1,2,11,13,20],
-    textCount = 5,
-    viewingTextIndex = 0,
     heightBeforeFull = 0;
 // earthquake variables
 var q_msiText = shindoListJP[q_maxShindo],
@@ -518,7 +805,6 @@ var systemTimeLag = 0; // ミリ秒単位
 var riverlevel = new Array(7);
 var rivertext = ["","","","","","",""];
 rivertext[0] = "wfi";
-var riveralltext = "";
 // 情報の読み込みを管理するオブジェクトです。
 const XHRs = {
   diderr: function (event){
@@ -612,7 +898,7 @@ XHRs.river.body.addEventListener("load", function(){
     rivertext[i] += riverlevel[i].map((a)=>{return a.point_name}).join("　/　");
   }
   rivertext[0] = "";
-  riveralltext = arrayCombining(rivertext);
+  normalText.commands.set("weather/river", arrayCombining(rivertext));
 });
 XHRs.river.body.addEventListener("error", XHRs.diderr);
 XHRs.river.body.addEventListener("timeout", XHRs.didtimeout);
@@ -913,24 +1199,9 @@ const intensity_list = {
   "65": "7"
 };
 
-function savedata(){
-  const data = {
-    mode0: {
-      title: [
-        document.getElementById('title1').value,
-        document.getElementById('title2').value,
-        document.getElementById('title3').value,
-        document.getElementById('title4').value,
-        document.getElementById('title5').value
-      ],
-      main: [
-        document.getElementById('message1').value,
-        document.getElementById('message2').value,
-        document.getElementById('message3').value,
-        document.getElementById('message4').value,
-        document.getElementById('message5').value
-      ]
-    },
+async function savedata(){
+  await chrome.storage.sync.set({
+    mode0: normalText.rawText,
     mode3: [
       document.getElementById('BNtitle').value,
       document.getElementById('BNtext1').value,
@@ -1014,16 +1285,10 @@ function savedata(){
       newUser: false,
       textSpeed
     }
-  };
-  // elements.class.sound_quake_volume.forEach((volume, i) => {
-  //   const type = elements.class.sound_quake_type[i];
-  //   data.settings.volume.quake.push({
-  //     volume: volume.value-0,
-  //     type: type.getAttribute("data-type")
-  //   });
-  // });
+  });
+
   lastSaveTime = Date.now();
-  chrome.storage.sync.set(data, function(){/* console.log("Data recorded.", data)*/});
+  console.log("Settings saved.");
 }
 
 function bit(number, bitL){
@@ -1131,55 +1396,9 @@ var amedasStationTable = null;
   loadAmedasStations.send();
 }
 
-function reflectNormalMsg(){
-  document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#fff";
-  viewingTextIndex = 0;
-  document.getElementsByClassName("normal-text")[0].style.background = "#ff0";
+function resetNormalMode(){
+  normalText.viewingIndex = 0;
   textOffsetX = 1200;
-  directTexts[5] = document.getElementById('title1').value;
-  directTexts[6] = document.getElementById('title2').value;
-  directTexts[7] = document.getElementById('title3').value;
-  directTexts[8] = document.getElementById('title4').value;
-  directTexts[9] = document.getElementById('title5').value;
-  directTexts[0] = document.getElementById('message1').value;
-  directTexts[1] = document.getElementById('message2').value;
-  directTexts[2] = document.getElementById('message3').value;
-  directTexts[3] = document.getElementById('message4').value;
-  directTexts[4] = document.getElementById('message5').value;
-  textCount = 0;
-  for (let i = 0; i < 5; i++){
-    if (directTexts[i] !== "") textCount++;
-  }
-  for (let i = 0; i < 5; i++){
-    textCmdIds[i] = 0;
-    if (directTexts[i] == "<weather/temperature/high>") textCmdIds[i] = 1;
-    if (directTexts[i] == "<weather/temperature/low>") textCmdIds[i] = 2;
-    if (directTexts[i] == "<weather/temperature/current>") textCmdIds[i] = 3;
-    if (directTexts[i] == "<weather/rain_rank/1h>") textCmdIds[i] = 4;
-    if (directTexts[i] == "<weather/rain_rank/1d>") textCmdIds[i] = 5;
-    if (directTexts[i] == "<weather/wind_rank>") textCmdIds[i] = 6;
-    if (directTexts[i] == "<weather/rain/10m>") textCmdIds[i] = 10;
-    if (directTexts[i] == "<weather/rain/1h>") textCmdIds[i] = 11;
-    if (directTexts[i] == "<weather/rain/3h>") textCmdIds[i] = 12;
-    if (directTexts[i] == "<weather/rain/24h>") textCmdIds[i] = 13;
-    if (directTexts[i] == "<weather/humidity>") textCmdIds[i] = 17;
-    if (directTexts[i] == "<weather/wind>") textCmdIds[i] = 20;
-    // if (DText[i] == "<weather/dust>") Dcommand[i] = 21; // 最大瞬間風速
-    if (directTexts[i] == "<weather/sun1h>") textCmdIds[i] = 28; // 日照時間
-    if (directTexts[i] == "<weather/snow/height>") textCmdIds[i] = 30; // 積雪
-    if (directTexts[i] == "<weather/snow/1h>") textCmdIds[i] = 35; // 降雪量
-    if (directTexts[i] == "<weather/snow/6h>") textCmdIds[i] = 36; // 降雪量
-    if (directTexts[i] == "<weather/snow/12h>") textCmdIds[i] = 37; // 降雪量
-    if (directTexts[i] == "<weather/snow/24h>") textCmdIds[i] = 38; // 降雪量
-    if (directTexts[i] == "<weather/pressure>") textCmdIds[i] = 40; // 降雪量
-    if (directTexts[i] == "<weather/warn>") textCmdIds[i] = 60;
-    if (directTexts[i] == "<weather/typh/comments>") textCmdIds[i] = 55; // 台風コメント全部
-    if (directTexts[i] == "<weather/river>") textCmdIds[i] = 100;
-    if (directTexts[i] == "<bousai/evacuation>") textCmdIds[i] = 300;
-    if (directTexts[i] == "<bousai/evacuation/emergency>") textCmdIds[i] = 302;
-    if (directTexts[i] == "<tsunami>") textCmdIds[i] = 1000; // 廃止？
-  }
-  if (!textCount) textCount = 1;
 }
 
 elements.class.tab_item[0].classList.remove("opt-hide");
@@ -1207,18 +1426,6 @@ $('.settings-box button').eq(0).on('click', function(){
   $('#menu .quakeList').toggle(200);
   $('#menu .tsunamiList').hide(200);
   $('#menu .dataList').hide(200);
-  // document.getElementById("eiTitle").innerText = "[地震情報](" + q_timeYY + "/" + q_timeMM + "/" + q_timeDD + " " + q_timeH + ":" + q_timeM + "頃発生) 震源地:" + q_epiName + " 最大震度:" + shindoListJP[q_maxShindo] + " M" + q_magnitude + " 深さ:" + ((q_depth == "ごく浅い")?q_depth:"約"+q_depth+"km");
-  // document.getElementById("eiwind").innerText = "";
-  // if (q_maxShindo == -1){
-  //   document.getElementById("eiTitle").innerText = "まだ情報は入っていません。";
-  //   document.getElementById("eiwind").innerText = "";
-  // } else {
-  //   for(var i=10; i>0; i--){
-  //     if(quakeText[i] != ""){
-  //       document.getElementById("eiwind").innerText += "［震度" + toFull(shindoListJP[i]) + "］\n　" + ( q_magnitude!='--' ? (quakeText[i].replace(/　 </g, '\n　').slice(1)) : (quakeText[i].replace(/　 </g, '\n　')) ).replace(/> /g, '：') + "\n";
-  //     }
-  //   }
-  // }
 });
 $('.settings-box button').eq(1).on('click', function(){
   $('#menu .quakeList').hide(200);
@@ -1394,19 +1601,19 @@ const Routines = {
     context.clip();
     context.fillStyle = colorScheme[colorThemeMode][1][mscale];
     context.fillRect(0, 0, 1080, 60);
-    if (!(t_viewType === 2 && !t_Cancelled)){
-      context.font = "28px " + FontFamilies.sans;
-      context.fillStyle = mscale === 1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
-      for (let i = 1; i < textCount; i++){
-        context.fillText(directTexts[5 + (viewingTextIndex + i)%textCount], 50 + 210 * i, 50, 190);
-      }
-    }
+
     context.fillStyle = colorScheme[colorThemeMode][3][mscale];
     context.font = "45px " + FontFamilies.sans;
     if (t_viewType === 2 && !t_Cancelled){
+      // 津波情報発令中なら津波情報と表示
       context.fillText("津波情報", 450, 47, 250);
     } else {
-      context.fillText(directTexts[5 + viewingTextIndex], 10, 47, 250);
+      // Title を描画
+      context.fillText(normalText.getTitle(normalText.viewingIndex), 10, 47, 600);
+      // Next title を描画
+      context.font = "24px " + FontFamilies.sans;
+      context.fillStyle = mscale === 1 ? colorScheme[colorThemeMode][4][0] : colorScheme[colorThemeMode][4][1];
+      context.fillText(normalText.getTitle((normalText.viewingIndex + 1) % normalText.enabledSize), 690, 50, 340);
     }
     context.restore();
   },
@@ -1427,13 +1634,19 @@ const Routines = {
     //context.font = '40px Arial, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, メイリオ, Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif';
     //context.font = '40px "游ゴシック Medium","Yu Gothic Medium","游ゴシック体",YuGothic,sans-serif';
     //context.font = '40px "Hiragino Sans W3", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif';
-    // let performDrawStartAt = performance.now() * 1000;
-    let textWidth;
-    if (viewMode === 0){
-      textWidth = -(strWidth(directTexts[viewingTextIndex])) - 200;
-    } else {
-      textWidth = strWidth(quakeText[q_currentShindo]) * -1;
-    }
+
+    const viewText = (
+      viewMode === 0
+      ? (
+        t_viewType === 2 && !t_Cancelled
+        ? DataOperator.tsunami.text.whole.replace(/\n/g, "　")
+        : normalText.getTextContent(normalText.viewingIndex)
+      )
+      : viewMode === 2
+      ? quakeText[q_currentShindo]
+      : ""
+    );
+    const textWidth = -strWidth(viewText);
 
     const targetTime = getAdjustedDate();
     const targetTimeInt = targetTime - 0;
@@ -1468,47 +1681,15 @@ const Routines = {
       }
     }
     const isMscale2 = mscale === 1 && colorThemeMode != 2;
-    //if((startTime%50) == 1)jma_earthquake();
-    //if((startTime%500) == 1){
-      //if(document.getElementById("isNormalMes").checked)loadDText();
-    //
-    if((q_startTime % Math.floor(elements.id.setIntervalIedred.valueAsNumber/20)) === 1){
+
+    if ((q_startTime % Math.floor(elements.id.setIntervalIedred.valueAsNumber/20)) === 1){
       eewChecking_c1();
     }
     uptimeCount++;
     q_startTime++;
     p2p_elapsedTime++;
-    switch (textCmdIds[viewingTextIndex]) {
-      case 1:
-        directTexts[viewingTextIndex] = weather_mxtemsadextstr;
-        // DText[Nnum+5] = "最高気温ランキング";
-        break;
-      case 2:
-        directTexts[viewingTextIndex] = weather_mntemsadextstr;
-        // DText[Nnum+5] = "最低気温ランキング";
-        break;
-      case 4:
-        directTexts[viewingTextIndex] = weather1hourrainstr;
-        // DText[Nnum+5] = "1時間降水量";
-        break;
-      case 5:
-        directTexts[viewingTextIndex] = weather24hoursrainstr;
-        // DText[Nnum+5] = "24時間降水量";
-        break;
-      case 6:
-        directTexts[viewingTextIndex] = weatherMaximumWindSpeedstr;
-        // DText[Nnum+5] = "風速ランキング";
-        break;
-      case 100:
-        directTexts[viewingTextIndex] = riveralltext;
-        // DText[Nnum+5] = "河川情報";
-        break;
-    }
-    if (commandShortcuts.hasOwnProperty(textCmdIds[viewingTextIndex])) directTexts[viewingTextIndex] = commandShortcuts[textCmdIds[viewingTextIndex]];
-    if (t_viewType === 2 && !t_Cancelled){
-      directTexts[viewingTextIndex] = DataOperator.tsunami.text.whole;
-    }
-    if ((uptimeCount%275) === 0){
+
+    if ((uptimeCount % 275) === 0){
       if (language == "Ja"){
         language = "En";
       } else {
@@ -1519,28 +1700,28 @@ const Routines = {
     if (textWidth > textOffsetX){
       textOffsetX = 1200;
       q_currentShindo--;
+      normalText.viewingIndex++;
       Routines.isDrawNormalTitle = true;
-      document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#ffffff";
-      /* if (!document.getElementsByName("scrollfix")[viewingTextIndex].checked) */ viewingTextIndex++;
-      if (viewingTextIndex == 5) viewingTextIndex = 0;
+
+      if (normalText.viewingIndex == 5) normalText.viewingIndex = 0;
       for (let i = q_currentShindo; i > -1; i--){
         if (quakeText[i] != ""){ q_currentShindo = i; break; }
       }
-      if (viewMode === 0) document.getElementsByClassName("normal-text")[viewingTextIndex].style.background = "#ffff60";
     }
     if (q_currentShindo < 0){
       q_currentShindo = q_maxShindo;
       if (viewMode === 2) earthquake_telop_times++;
     }
-    if(viewingTextIndex >= textCount) viewingTextIndex = 0;
+    // 項目ループ
+    if (normalText.viewingIndex >= normalText.enabledSize) normalText.viewingIndex = 0;
 
     if (viewMode === 0){
       context.fillStyle = colorScheme[colorThemeMode][5][1];
-      context.fillText(directTexts[viewingTextIndex], textOffsetX, 110);
     } else if (viewMode === 2){
       context.fillStyle = colorScheme[colorThemeMode][5][2];
-      context.fillText(quakeText[q_currentShindo], textOffsetX, 110);
     }
+    context.fillText(viewText, textOffsetX, 110);
+
     //背景(Blue)
     context.fillStyle = colorScheme[colorThemeMode][1][mscale];
     if (viewMode === 2) context.fillRect(0, 0, 1080, 60);
@@ -1880,14 +2061,15 @@ const Routines = {
         context.fillStyle = "#b33122";
         context.fillRect(265, 0, 815, 60);
         context.font = "500 30px " + FontFamilies.sans;
-        context.fillStyle = "#fff";
-        context.fillText("津波情報", 275, 33, 800);
-        context.strokeStyle = "#fff";
+        context.fillStyle = "#ddd";
+        context.fillText("津波予報", 275, 33, 800);
+        context.strokeStyle = "#999";
         context.lineWidth = 3;
         context.beginPath();
         context.moveTo(385, 55);
         context.lineTo(435, 5);
         context.stroke();
+        context.fillStyle = "#fff";
         context.fillText(tsunamiTexts[t_page], 420, 53, 610);
         context.font = "bold 20px 'Helvetica-Bold', 'HelveticaNeue', " + FontFamilies.sans;
         context.textAlign = "center";
@@ -1896,6 +2078,7 @@ const Routines = {
         context.moveTo(1045, 25);
         context.lineTo(1075, 25);
         context.stroke();
+        context.fillStyle = "#aaa";
         context.fillText((t_page+1)+"", 1060, 21);
         context.fillText(tsunamiTexts.length, 1060, 43);
         context.textAlign = "start";
@@ -2467,12 +2650,8 @@ var weather24hourrain = [];
 var weatherMaximumWindSpeed = [];
 var weather_mxtemsadext = [];
 var weather_mntemsadext = [];
-var weather1hourrainstr = "",
-    weather24hoursrainstr = "",
-    weatherMaximumWindSpeedstr = "",
-    weather_mxtemsadextstr = "",
-    weather_mntemsadextstr = "";
 var weather_prelist = [[],[],[],[],[]];
+
 function rain_windData(isFull){
   weather_prelist = [[],[],[],[],[]];
   $.ajax({
@@ -2526,20 +2705,20 @@ function rain_windData(isFull){
       // }
       // weather1hourrain = weather1hourrain.filter(function(a){return wpll.indexOf(a.pref)!=-1});
       weather1hourrain.sort(function(a,b){return b.value-a.value});
-      weather1hourrainstr = "[Maximum hourly precipitation]　("+obsTime+")　　　";
+
+      let rainText = "";
       var rank = 0;
       for(let i=0; i<weather1hourrain.length; i++){
         if(rank!=0)if(weather1hourrain[i].value != weather1hourrain[i-1].value)rank=i+1; else; else rank++;
         if(i>20){
           if(weather1hourrain[i].value!=weather1hourrain[i-1].value)break;
         }
-        weather1hourrainstr += rank+")"+weather1hourrain[i].pref+" "+weather1hourrain[i].name.replace(/（.{1,}）/, "")+" "+weather1hourrain[i].value+"mm/h　　 ";
+        rainText += rank+")"+weather1hourrain[i].pref+" "+weather1hourrain[i].name.replace(/（.{1,}）/, "")+" "+weather1hourrain[i].value+"mm/h　　 ";
       }
-      if(weather1hourrainstr==""){
-        weather1hourrainstr = (wpll.join('、')+"では過去1時間以内に雨が降ったところはないようです。").replace(/ /g, "");
-        if(cn.length == wpll.length){
-          weather1hourrainstr = "日本で過去1時間以内に雨が降ったところはないようです。";
-        }
+      if (rainText === ""){
+        normalText.commands.set("weather/rain_rank/1h", "過去 1 時間以内に雨が降ったところはないようです。");
+      } else {
+        normalText.commands.set("weather/rain_rank/1h", "[Maximum hourly precipitation]　("+obsTime+")　　　"+rainText);
       }
     }
   });
@@ -2594,17 +2773,20 @@ function rain_windData(isFull){
       // }
       // weather24hourrain = weather24hourrain.filter(function(a){return wpll.indexOf(a.pref)!=-1});
       weather24hourrain.sort(function(a,b){return b.value-a.value});
-      weather24hoursrainstr = "[Maximum 24-hour precipitation]　("+obsTime+")　　　";
+
+      let commandText = "";
       var rank = 0;
       for (let i=0; i<weather24hourrain.length; i++){
         if (rank!=0) if(weather24hourrain[i].value != weather24hourrain[i-1].value)rank=i+1; else; else rank++;
         if (i>20){
           if (weather24hourrain[i].value!=weather24hourrain[i-1].value) break;
         }
-        weather24hoursrainstr += rank+")"+weather24hourrain[i].pref+" "+weather24hourrain[i].name.replace(/（.{1,}）/, "")+" "+weather24hourrain[i].value+"mm/d　　 ";
+        commandText += rank+")"+weather24hourrain[i].pref+" "+weather24hourrain[i].name.replace(/（.{1,}）/, "")+" "+weather24hourrain[i].value+"mm/d　　 ";
       }
-      if (weather24hoursrainstr == ""){
-        weather24hoursrainstr = (wpll.join('、')+"では過去1時間以内に雨が降ったところはないようです。").replace(/ /g, "");
+      if (commandText === ""){
+        normalText.commands.set("weather/rain_rank/1d", "過去 24 時間で雨が降ったところはないようです。");
+      } else {
+        normalText.commands.set("weather/rain_rank/1d", "[Maximum daily precipitation]　("+obsTime+")　　　"+commandText);
       }
     }
   });
@@ -2660,7 +2842,8 @@ function rain_windData(isFull){
         // }
         // weatherMaximumWindSpeed = weatherMaximumWindSpeed.filter(function(a){return wpll.indexOf(a.pref)!=-1});
         weatherMaximumWindSpeed.sort(function(a,b){return b.value-a.value});
-        weatherMaximumWindSpeedstr = "[Maximum wind speed]　("+obsTime+")　　　";
+
+        let commandText = "[Maximum wind speed] 　("+obsTime+")　　　";
         var rank = 0;
         let unit = document.getElementsByName('unitWinds')[0].value;
         switch (unit) {
@@ -2694,8 +2877,9 @@ function rain_windData(isFull){
           if(i>20){
             if(weatherMaximumWindSpeed[i].value!=weatherMaximumWindSpeed[i-1].value)break;
           }
-          weatherMaximumWindSpeedstr += rank+")"+weatherMaximumWindSpeed[i].pref+" "+weatherMaximumWindSpeed[i].name.replace(/（.{1,}）/, "")+" "+weatherMaximumWindSpeed[i].value+""+unit+"　　 ";
+          commandText += rank+")"+weatherMaximumWindSpeed[i].pref+" "+weatherMaximumWindSpeed[i].name.replace(/（.{1,}）/, "")+" "+weatherMaximumWindSpeed[i].value+""+unit+"　　 ";
         }
+        normalText.commands.set("weather/wind_rank", commandText);
       }
     });
     $.ajax({
@@ -2749,7 +2933,8 @@ function rain_windData(isFull){
         // }
         // weather_mxtemsadext = weather_mxtemsadext.filter(function(a){return wpll.indexOf(a.pref)!=-1});
         weather_mxtemsadext.sort(function(a,b){return b.value-a.value});
-        weather_mxtemsadextstr = "[Maximum temperature]　("+obsTime+")　　　";
+        let commandText = "[Maximum temperature] 　("+obsTime+")　　　";
+
         var rank = 0;
         let unit = document.getElementsByName('unitTemp')[0].value;
         switch (unit) {
@@ -2770,8 +2955,9 @@ function rain_windData(isFull){
           if(i>20){
             if(weather_mxtemsadext[i].value!=weather_mxtemsadext[i-1].value)break;
           }
-          weather_mxtemsadextstr += rank+")"+weather_mxtemsadext[i].pref+" "+weather_mxtemsadext[i].name.replace(/（.{1,}）/, "")+" "+weather_mxtemsadext[i].value+""+unit+"　　 ";
+          commandText += rank+")"+weather_mxtemsadext[i].pref+" "+weather_mxtemsadext[i].name.replace(/（.{1,}）/, "")+" "+weather_mxtemsadext[i].value+""+unit+"　　 ";
         }
+        normalText.commands.set("weather/temperature/high", commandText);
       }
     });
     $.ajax({
@@ -2825,7 +3011,8 @@ function rain_windData(isFull){
         // }
         // weather_mntemsadext = weather_mntemsadext.filter(function(a){return wpll.indexOf(a.pref)!=-1});
         weather_mntemsadext.sort(function(a,b){return a.value-b.value});
-        weather_mntemsadextstr = "[Minimum temperature]　("+obsTime+")　　　";
+
+        let commandText = "[Minimum temperature]　("+obsTime+")　　　";
         var rank = 0;
         let unit = document.getElementsByName('unitTemp')[0].value;
         switch (unit) {
@@ -2846,8 +3033,9 @@ function rain_windData(isFull){
           if(i>20){
             if(weather_mntemsadext[i].value!=weather_mntemsadext[i-1].value)break;
           }
-          weather_mntemsadextstr += rank+")"+weather_mntemsadext[i].pref+" "+weather_mntemsadext[i].name.replace(/（.{1,}）/, "")+" "+weather_mntemsadext[i].value+""+unit+"　　 ";
+          commandText += rank+")"+weather_mntemsadext[i].pref+" "+weather_mntemsadext[i].name.replace(/（.{1,}）/, "")+" "+weather_mntemsadext[i].value+""+unit+"　　 ";
         }
+        normalText.commands.set("weather/temperature/low", commandText);
       }
     });
   }
@@ -3021,21 +3209,20 @@ const getAmedasData = function(){
       if(!output12snowText) output12snowText = "現在、前12時間以内に雪が降った場所は無いようです。";
       if(!output24snowText) output24snowText = "現在、前24時間以内に雪が降った場所は無いようです。";
 
-      commandShortcuts[3] = outputTempText;
-      commandShortcuts[10] = output10precText;
-      commandShortcuts[11] = output60precText;
-      commandShortcuts[12] = output180precText;
-      commandShortcuts[13] = output1440precText;
-      commandShortcuts[17] = outputHumidityText;
-      commandShortcuts[20] = outputWindText;
-      // command_shortcutsTo[21] = outputDustText;
-      commandShortcuts[28] = outputSun1h;
-      commandShortcuts[30] = outputSnowHeightText;
-      commandShortcuts[35] = output1snowText;
-      commandShortcuts[36] = output6snowText;
-      commandShortcuts[37] = output12snowText;
-      commandShortcuts[38] = output24snowText;
-      commandShortcuts[40] = outputPressureText;
+      normalText.commands.set("weather/temperature/current", outputTempText);
+      normalText.commands.set("weather/rain/10m", output10precText);
+      normalText.commands.set("weather/rain/1h", output60precText);
+      normalText.commands.set("weather/rain/3h", output180precText);
+      normalText.commands.set("weather/rain/24h", output1440precText);
+      normalText.commands.set("weather/humidity", outputHumidityText);
+      normalText.commands.set("weather/wind", outputWindText);
+      normalText.commands.set("weather/sun1h", outputSun1h);
+      normalText.commands.set("weather/snow/height", outputSnowHeightText);
+      normalText.commands.set("weather/snow/1h", output1snowText);
+      normalText.commands.set("weather/snow/6h", output6snowText);
+      normalText.commands.set("weather/snow/12h", output12snowText);
+      normalText.commands.set("weather/snow/24h", output24snowText);
+      normalText.commands.set("weather/pressure", outputPressureText);
     });
   });
 };
@@ -3061,8 +3248,8 @@ const getEvacuationData = function(){
         if(severities[i] === "緊急安全確保") warnAreaTextsOnlyEmg.push(additionalText);
       }
     }
-    commandShortcuts[300] = warnAreaTexts.join("　") || "該当地域なし";
-    commandShortcuts[302] = warnAreaTextsOnlyEmg.join("　") || "該当地域なし";
+    normalText.commands.set("bousai/evacuation", warnAreaTexts.join("　") || "該当地域なし");
+    normalText.commands.set("bousai/evacuation/emergency", warnAreaTextsOnlyEmg.join("　") || "該当地域なし");
   });
   xhrEvacuation.open("GET", "https://site.weathernews.jp/site/lalert/json/evac.json");
   xhrEvacuation.send();
@@ -3865,15 +4052,15 @@ DataOperator.tsunami.onUpdate = (data, vtse41, vtse51) => {
   }
 };
 DataOperator.typh_comment.onUpdate = data => {
-  commandShortcuts[55] = "";
+  normalText.commands.set("weather/typh/comments", "");
   for (const item of Object.values(data.data)){
     if (item.number){
-      commandShortcuts[55] += "【台風" + item.number + "号】  " + item.comment;
+      normalText.commands.set("weather/typh/comments", normalText.commands.get("weather/typh/comments") + "【台風" + item.number + "号】  " + item.comment);
     }
   }
 };
 DataOperator.warn_current.onUpdate = data => {
-  commandShortcuts[60] = data;
+  normalText.commands.set("weather/warn", data);
 };
 
 function quakeTemplateView(viewId){
@@ -4129,7 +4316,7 @@ function modeChange(num){
   console.log(num);
   switch (num) {
     case 0:
-      TextWidth = -(strWidth(directTexts));
+      TextWidth = - strWidth(normalText.getTitle(normalText.viewingIndex));
       SetMode(0);
       break;
 
@@ -4221,12 +4408,11 @@ const byteToString = byte => {
 };
 
 (async () => {
-
   // Chromeストレージ（設定）
-  await new Promise(resolve => {
-    chrome.storage.sync.get(['mode0', 'mode3', 'settings', 'app'], data => {
+  const data = await chrome.storage.sync.get(['mode0', 'mode3', 'settings', 'app']);
+  {
       let isSaveForced = false;
-      let currentVerID = AppVersionHistory.indexOf(data.app.lastVer);
+    const currentVerID = AppVersionHistory.indexOf(data.app.lastVer);
       // Release note: 必ず追加すること
       // console.log(JSON.stringify(c));
       if ((!data.app) || data.app.newUser){
@@ -4240,22 +4426,62 @@ const byteToString = byte => {
         if (currentVerID < 16){ /* β0.2.8以前 */ data.settings.volume.fldoc5 = data.settings.volume?.fldoc ?? 100; data.settings.volume.fldoc4 = 100; data.settings.volume.gl = 100; isSaveForced = true; }
         if (currentVerID < 22){ /* β0.3.4以前 */ data.settings.volume.eewL = [ data.settings.volume.eewL, data.settings.volume.eewL, data.settings.volume.eewL ] }
         // if (currentVerID < 23){ /* β0.4.0以前 */ alert(data.app.lastVer+" からのバージョンアップを検知しました。\nカスタム音声の場所が、 EEW_Warning.（以下省略） → 「eew-custom.mp3」のみに変更されています。\nカスタム音声を使用している場合、手動で名前を変更するようにお願いします。"); }
+      if (currentVerID < 33){ /* β0.6.2以前 */
+        const mode0new = [];
+        for (let i = 0; i < 5; i ++){
+          const convShortcutList = [
+            "<weather/temperature/high>",
+            "<weather/temperature/low>",
+            "<weather/rain_rank/1h>",
+            "<weather/rain_rank/1d>",
+            "<weather/wind_rank>",
+            "<weather/temperature/current>",
+            "<weather/rain/10m>",
+            "<weather/rain/1h>",
+            "<weather/rain/3h>",
+            "<weather/rain/24h>",
+            "<weather/humidity>",
+            "<weather/wind>",
+            "<weather/sun1h>",
+            "<weather/snow/height>",
+            "<weather/snow/1h>",
+            "<weather/snow/6h>",
+            "<weather/snow/12h>",
+            "<weather/snow/24h>",
+            "<weather/pressure>",
+            "<weather/river>",
+            "<weather/warn>",
+            "<weather/evacuation>",
+            "<weather/evacuation/emergency>",
+          ];
+          if (convShortcutList.includes(data.mode0.main[i])) {
+            mode0new.push({
+              title: data.mode0.title[i],
+              content: data.mode0.main[i],
+              enabled: true,
+              type: "shortcut",
+              shortcutId: data.mode0.main[i]
+            });
+          } else {
+            mode0new.push({
+              title: data.mode0.title[i],
+              content: data.mode0.main[i],
+              enabled: true,
+              type: "custom",
+              shortcutId: null
+            });
+          }
+        }
+        data.mode0 = mode0new;
+      }
       }
 
       data.settings.volume.eewP ??= 100
       data.settings.volume.hvra ??= 100
       data.settings.volume.fldoc5 ??= 100
       data.settings.volume.fldoc4 ??= 100
-      document.getElementById('message1').value = data.mode0.main[0];
-      document.getElementById('message2').value = data.mode0.main[1];
-      document.getElementById('message3').value = data.mode0.main[2];
-      document.getElementById('message4').value = data.mode0.main[3];
-      document.getElementById('message5').value = data.mode0.main[4];
-      document.getElementById('title1').value = data.mode0.title[0];
-      document.getElementById('title2').value = data.mode0.title[1];
-      document.getElementById('title3').value = data.mode0.title[2];
-      document.getElementById('title4').value = data.mode0.title[3];
-      document.getElementById('title5').value = data.mode0.title[4];
+
+    normalText.overrideText(data.mode0);
       document.getElementById('BNtitle').value = data.mode3[0];
       document.getElementById('BNtext1').value = data.mode3[1];
       document.getElementById('BNtext2').value = data.mode3[2];
@@ -4306,16 +4532,15 @@ const byteToString = byte => {
       colorThemeMode = data.settings?.theme?.color ?? 0;
       audioAPI.setGainTimer(data.settings?.gainPrograms ?? []);
 
-      if(isSaveForced) savedata();
+    if (isSaveForced) savedata();
       isSoraview = data.settings.soraview;
       audioAPI.gainNode.gain.value = data.settings.volume.eewH / 100;
+
       document.addEventListener("DOMContentLoaded", () => {
         // console.log("DOMContentLoaded");
-        reflectNormalMsg();
+      resetNormalMode();
       });
-      resolve();
-    });
-  });
+  }
 
   const audioEndedEvent = function (){
     console.log(this.buffer);
@@ -4430,14 +4655,6 @@ function changeTextSpeed (value){
 }
 
 // イベント類
-document.getElementsByName("goMessage")[0].addEventListener('click', function(){
-  reflectNormalMsg();
-  NewsOperator.clearAll();
-  SetMode(0);
-  textOffsetX = 1200;
-  language = "Ja";
-  uptimeCount = 217;
-});
 document.getElementById("into-fullscreen").addEventListener('click', function(){
   const ratio = (window.outerWidth-Window_FrameWidth)/window.innerWidth;
   document.getElementsByClassName("canvas-container")[0].classList.add("fullview");
@@ -4466,7 +4683,7 @@ document.getElementById("speedVal").addEventListener('input', function (){
   changeTextSpeed();
 });
 document.getElementsByName("BreakingNewsView")[0].addEventListener('click', function(){BNref()});
-document.getElementsByName("wtWarnListView")[0].addEventListener('click', function(){viewWeatherWarningList();});
+document.getElementById("weatherWarn.clearAll").addEventListener("click", function (){ NewsOperator.clearAll(); });
 document.getElementsByName("sorabtn")[0].addEventListener('click', function(){sorabtn_view()});
 document.getElementsByName("sorabtn")[1].addEventListener('click', function(){sorabtn_open()});
 document.getElementsByName("sorabtn")[2].addEventListener('click', function(){sorabtn_close()});

@@ -33,11 +33,24 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 chrome.storage.sync.get(['mode0', 'mode3'], storageData => {
   // 初期状態（main.jsでバージョンアップ後のやつに調整されるからセーフ）
   if (JSON.stringify(storageData) !== "{}") return;
+
   chrome.storage.sync.set({
-    mode0: {
-      main: [ "<weather/river>", "<weather/temperature/high>", "<weather/rain/1h>", "<weather/rain/24h>", "<weather/wind>" ],
-      title: [ "河川情報", "最高気温(℃)", "時降水量(mm/h)", "日降水量(mm/d)", "最大風速(m/s)" ]
-    },
+    mode0: [
+      {
+        "title": "お知らせ",
+        "content": "NDV ティッカーをご利用いただきありがとうございます。",
+        "enabled": true,
+        "type": "custom",
+        "shortcutId": null
+      },
+      {
+        "title": "最高気温（℃）",
+        "content": "",
+        "enabled": true,
+        "type": "shortcut",
+        "shortcutId": "weather/temperature/high"
+      }
+    ],
     mode3: [ "aaaaああああ｜｜", "文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえお文章あいうえおabc-0234", "text" ],
     settings: {
       autorecord: false,
