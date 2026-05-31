@@ -61,7 +61,7 @@ console.log("%cThe Programs Started at: "+(new Date()).toISOString()+" (System T
 const SpeechVersionData = {
   speaker21: "",
   speaker16: "",
-  speaker8: "0.5.0",
+  speaker8: "0.7.0",
 };
 
 // エラー処理
@@ -183,7 +183,6 @@ const elements = {
     /** @type {HTMLInputElement} */ speechCheckboxEEW: document.getElementById("speech-checkbox-eew"),
     /** @type {HTMLInputElement} */ speechCheckboxQuake: document.getElementById("speech-checkbox-quake"),
     /** @type {HTMLInputElement} */ speechCheckboxVPOA50: document.getElementById("speech-checkbox-vpoa50"),
-    /** @type {HTMLInputElement} */ speechCheckboxGround: document.getElementById("speech-checkbox-ground"),
     /** @type {HTMLInputElement} */ speechCheckboxSPwarn: document.getElementById("speech-checkbox-specialwarn"),
   },
   class: {
@@ -1275,7 +1274,6 @@ async function savedata(){
           EEW: elements.id.speechCheckboxEEW.checked,
           Quake: elements.id.speechCheckboxQuake.checked,
           VPOA50: elements.id.speechCheckboxVPOA50.checked,
-          Ground: elements.id.speechCheckboxGround.checked,
           SPwarn: elements.id.speechCheckboxSPwarn.checked,
         }
       },
@@ -3376,7 +3374,7 @@ function weatherInfo(){
               dataType: 'xml',
               cache: true,
               success: function(c){
-                  weatherVXKOii(NewsOperator, c);
+                weatherVXKOii(NewsOperator, c);
               }
             });
           } else if (titleTextContent === "全般気象解説情報"){
@@ -3571,6 +3569,9 @@ const weatherVPWWii = dataXml => {
 
   const forecastCities = dataXml.querySelectorAll('Body > Warning[type="気象警報・注意報（市町村等）"] > Item');
   const headlineText = dataXml.querySelector('Head > Headline > Text').textContent;
+
+  const issuedAlertCodes = [];
+
   for (const city of forecastCities){
     const alertKindStatus = city.querySelector('Kind > Status').textContent;
     if (alertKindStatus === "継続" || alertKindStatus === "発表警報・注意報はなし") {
@@ -3582,9 +3583,11 @@ const weatherVPWWii = dataXml => {
     const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
     const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
 
+
     let mainText = "【 " + cityName + " 】 ";
     if (alertKindStatus === "発表"){
       mainText += "発表：" + alertName;
+      issuedAlertCodes.push(alertCode);
     } else if (alertKindStatus === "解除"){
       mainText += "解除：" + alertName;
     } else {
@@ -3600,7 +3603,7 @@ const weatherVPWWii = dataXml => {
       // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
       NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: 8000 });
-      if ([39, 49].includes(alertCode - 0)){ // 危険警報以上
+      if (alertCode === "39"){ // 危険警報のみ
         SFXController.play(sounds.warning.GroundLoosening);
       }
     } else if (reportType.endsWith("（高潮）")){ // VPWW57
@@ -3747,6 +3750,31 @@ const weatherVPWWii = dataXml => {
       NewsOperator.add(newsTitle, headlineText, mainText, { duration: 7000 });
     }
   }
+
+  const officeId = dataXml.querySelector('Head > Headline > Information[type="気象警報・注意報（府県予報区等）"] > Item > Areas > Area > Code').textContent;
+  // 特別警報の読み上げ処理（市町村ごとの処理だと何回も鳴ってしまう）
+  if (issuedAlertCodes.includes("33")){ // 大雨特別警報
+    if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
+      { type: "wait", time: 3500 },
+      { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
+      { type: "path", speakerId: "speaker8", path: "warning.rainfall" }
+    ]);
+    SFXController.play(sounds.warning.Emergency);
+  } else if (issuedAlertCodes.includes("38")){ // 高潮特別警報
+    if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
+      { type: "wait", time: 3500 },
+      { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
+      { type: "path", speakerId: "speaker8", path: "warning.stormsurge" }
+    ]);
+    SFXController.play(sounds.warning.Emergency);
+  } else if (issuedAlertCodes.includes("39")){ // 土砂災害特別警報
+    if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
+      { type: "wait", time: 3500 },
+      { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
+      { type: "path", speakerId: "speaker8", path: "warning.landslide" }
+    ]);
+    SFXController.play(sounds.warning.Emergency);
+  }
 };
 
 
@@ -3782,6 +3810,11 @@ const weatherVXKOii = dataXml => {
         }
       }
     }
+
+    if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
+      { type: "wait", time: 3500 },
+      { type: "path", speakerId: "speaker8", path: "warning.flood" }
+    ]);
   } else if (40 <= level && level < 50){
     SFXController.play(sounds.warning.Flood4);
 
@@ -4308,21 +4341,21 @@ const byteToString = byte => {
   // Chromeストレージ（設定）
   const data = await chrome.storage.sync.get(['mode0', 'mode3', 'settings', 'app']);
   {
-      let isSaveForced = false;
+    let isSaveForced = false;
     const currentVerID = AppVersionHistory.indexOf(data.app.lastVer);
-      // Release note: 必ず追加すること
-      // console.log(JSON.stringify(c));
-      if ((!data.app) || data.app.newUser){
-        isSaveForced = true;
-      } else {
-        if (currentVerID === -1) alert(data.app.lastVer+" ってどのバージョンですか？？？？？？");
-        // if (data.app.lastVer !== AppVersionView) /* アップデート後初回起動 */ isSaveForced = true;
-        if (currentVerID <  3){ /* β0.1.2以前 */ if(data.settings.volume.eewH == 100){ alert("（ "+data.app.lastVer+" からのバージョンアップを検知しました）\n緊急地震速報(警報)時の音量を再確認し、必ず保存してください。"); }}
-        if (currentVerID < 13){ /* β0.2.5以前 */ data.settings.interval.wniRiver = Math.max(data.settings.interval.wniRiver, 120000); }
-        if (currentVerID < 15){ /* β0.2.7以前 */ data.settings.volume.eewC = 100;}
-        if (currentVerID < 16){ /* β0.2.8以前 */ data.settings.volume.fldoc5 = data.settings.volume?.fldoc ?? 100; data.settings.volume.fldoc4 = 100; data.settings.volume.gl = 100; isSaveForced = true; }
-        if (currentVerID < 22){ /* β0.3.4以前 */ data.settings.volume.eewL = [ data.settings.volume.eewL, data.settings.volume.eewL, data.settings.volume.eewL ] }
-        // if (currentVerID < 23){ /* β0.4.0以前 */ alert(data.app.lastVer+" からのバージョンアップを検知しました。\nカスタム音声の場所が、 EEW_Warning.（以下省略） → 「eew-custom.mp3」のみに変更されています。\nカスタム音声を使用している場合、手動で名前を変更するようにお願いします。"); }
+    // Release note: 必ず追加すること
+    // console.log(JSON.stringify(c));
+    if ((!data.app) || data.app.newUser){
+      isSaveForced = true;
+    } else {
+      if (currentVerID === -1) alert(data.app.lastVer+" ってどのバージョンですか？？？？？？");
+      // if (data.app.lastVer !== AppVersionView) /* アップデート後初回起動 */ isSaveForced = true;
+      if (currentVerID <  3){ /* β0.1.2以前 */ if(data.settings.volume.eewH == 100){ alert("（ "+data.app.lastVer+" からのバージョンアップを検知しました）\n緊急地震速報(警報)時の音量を再確認し、必ず保存してください。"); }}
+      if (currentVerID < 13){ /* β0.2.5以前 */ data.settings.interval.wniRiver = Math.max(data.settings.interval.wniRiver, 120000); }
+      if (currentVerID < 15){ /* β0.2.7以前 */ data.settings.volume.eewC = 100;}
+      if (currentVerID < 16){ /* β0.2.8以前 */ data.settings.volume.fldoc5 = data.settings.volume?.fldoc ?? 100; data.settings.volume.fldoc4 = 100; data.settings.volume.gl = 100; isSaveForced = true; }
+      if (currentVerID < 22){ /* β0.3.4以前 */ data.settings.volume.eewL = [ data.settings.volume.eewL, data.settings.volume.eewL, data.settings.volume.eewL ] }
+      // if (currentVerID < 23){ /* β0.4.0以前 */ alert(data.app.lastVer+" からのバージョンアップを検知しました。\nカスタム音声の場所が、 EEW_Warning.（以下省略） → 「eew-custom.mp3」のみに変更されています。\nカスタム音声を使用している場合、手動で名前を変更するようにお願いします。"); }
       if (currentVerID < 33){ /* β0.6.2以前 */
         const mode0new = [];
         for (let i = 0; i < 5; i ++){
@@ -4371,71 +4404,71 @@ const byteToString = byte => {
         }
         data.mode0 = mode0new;
       }
-      }
+    }
 
-      data.settings.volume.eewP ??= 100
-      data.settings.volume.hvra ??= 100
-      data.settings.volume.fldoc5 ??= 100
-      data.settings.volume.fldoc4 ??= 100
+    data.settings.volume.eewP ??= 100
+    data.settings.volume.hvra ??= 100
+    data.settings.volume.fldoc5 ??= 100
+    data.settings.volume.fldoc4 ??= 100
 
     normalText.overrideText(data.mode0);
-      document.getElementById('BNtitle').value = data.mode3[0];
-      document.getElementById('BNtext1').value = data.mode3[1];
-      document.getElementById('BNtext2').value = data.mode3[2];
-      changeTextSpeed(data.settings?.tickerSpeed ?? 5);
-      document.getElementById('isSoraview').checked = data.settings.soraview;
-      document.getElementById('setClipEEW').checked = data.settings.clipboard.eew;
-      document.getElementById('setClipQuake').checked = data.settings.clipboard.quake;
-      document.getElementById('setIntervalIedred').value = data.settings.interval.iedred7584EEW;
-      document.getElementById('setIntervalNHKquake').value = data.settings.interval.nhkQuake;
-      document.getElementById('setIntervalJmaWt').value = data.settings.interval.jmaDevFeed;
-      document.getElementById('setIntervalTenkiJpTsu').value = data.settings.interval.tenkiJPtsunami;
-      document.getElementById('setIntervalTyphCom').value = data.settings.interval?.typhComment ?? 30000;
-      document.getElementById('setIntervalWarn').value = data.settings.interval?.warnInfo ?? 15000;
-      document.getElementById('setIntervalWNImscale').value = data.settings.interval.wniMScale;
-      document.getElementById('setIntervalWNIsorabtn').value = data.settings.interval.wniSorabtn;
-      document.getElementById('setIntervalWNIriver').value = data.settings.interval.wniRiver;
-      document.getElementById('volEEWl1').value = data.settings.volume.eewL[0] ?? 100;
-      document.getElementById('volEEWl5').value = data.settings.volume.eewL[1] ?? 100;
-      document.getElementById('volEEWl9').value = data.settings.volume.eewL[2] ?? 100;
-      document.getElementById('volEEWh').value = data.settings.volume.eewH ?? 10;
-      document.getElementById('volEEWc').value = data.settings.volume.eewC ?? 100;
-      document.getElementById('volEEWp').value = data.settings.volume.eewP ?? 100;
-      document.getElementById('volGL').value = data.settings.volume.gl ?? 100;
-      document.getElementById('volNtc').value = data.settings.volume.ntc ?? 100;
-      document.getElementById('volSpW').value = data.settings.volume.spW ?? 100;
-      document.getElementById('volTnm').value = data.settings.volume.tnm ?? 100;
-      document.getElementById('volHvRa').value = data.settings.volume.hvra ?? 100;
-      document.getElementById('volFldOc5').value = data.settings.volume.fldoc5 ?? 100;
-      document.getElementById('volFldOc4').value = data.settings.volume.fldoc4 ?? 100;
+    document.getElementById('BNtitle').value = data.mode3[0];
+    document.getElementById('BNtext1').value = data.mode3[1];
+    document.getElementById('BNtext2').value = data.mode3[2];
+    changeTextSpeed(data.settings?.tickerSpeed ?? 5);
+    document.getElementById('isSoraview').checked = data.settings.soraview;
+    document.getElementById('setClipEEW').checked = data.settings.clipboard.eew;
+    document.getElementById('setClipQuake').checked = data.settings.clipboard.quake;
+    document.getElementById('setIntervalIedred').value = data.settings.interval.iedred7584EEW;
+    document.getElementById('setIntervalNHKquake').value = data.settings.interval.nhkQuake;
+    document.getElementById('setIntervalJmaWt').value = data.settings.interval.jmaDevFeed;
+    document.getElementById('setIntervalTenkiJpTsu').value = data.settings.interval.tenkiJPtsunami;
+    document.getElementById('setIntervalTyphCom').value = data.settings.interval?.typhComment ?? 30000;
+    document.getElementById('setIntervalWarn').value = data.settings.interval?.warnInfo ?? 15000;
+    document.getElementById('setIntervalWNImscale').value = data.settings.interval.wniMScale;
+    document.getElementById('setIntervalWNIsorabtn').value = data.settings.interval.wniSorabtn;
+    document.getElementById('setIntervalWNIriver').value = data.settings.interval.wniRiver;
+    document.getElementById('volEEWl1').value = data.settings.volume.eewL[0] ?? 100;
+    document.getElementById('volEEWl5').value = data.settings.volume.eewL[1] ?? 100;
+    document.getElementById('volEEWl9').value = data.settings.volume.eewL[2] ?? 100;
+    document.getElementById('volEEWh').value = data.settings.volume.eewH ?? 10;
+    document.getElementById('volEEWc').value = data.settings.volume.eewC ?? 100;
+    document.getElementById('volEEWp').value = data.settings.volume.eewP ?? 100;
+    document.getElementById('volGL').value = data.settings.volume.gl ?? 100;
+    document.getElementById('volNtc').value = data.settings.volume.ntc ?? 100;
+    document.getElementById('volSpW').value = data.settings.volume.spW ?? 100;
+    document.getElementById('volTnm').value = data.settings.volume.tnm ?? 100;
+    document.getElementById('volHvRa').value = data.settings.volume.hvra ?? 100;
+    document.getElementById('volFldOc5').value = data.settings.volume.fldoc5 ?? 100;
+    document.getElementById('volFldOc4').value = data.settings.volume.fldoc4 ?? 100;
 
-      document.getElementById("speech-vol-input").value = data.settings?.speech?.volume ?? 1;
-      document.getElementById("speech-checkbox-eew").checked = data.settings?.speech?.options?.EEW ?? true;
-      document.getElementById("speech-checkbox-quake").checked = data.settings?.speech?.options?.Quake ?? true;
-      document.getElementById("speech-checkbox-vpoa50").checked = data.settings?.speech?.options?.VPOA50 ?? true;
-      document.getElementById("speech-checkbox-specialwarn").checked = data.settings?.speech?.options?.SPwarn ?? true;
+    document.getElementById("speech-vol-input").value = data.settings?.speech?.volume ?? 1;
+    document.getElementById("speech-checkbox-eew").checked = data.settings?.speech?.options?.EEW ?? true;
+    document.getElementById("speech-checkbox-quake").checked = data.settings?.speech?.options?.Quake ?? true;
+    document.getElementById("speech-checkbox-vpoa50").checked = data.settings?.speech?.options?.VPOA50 ?? true;
+    document.getElementById("speech-checkbox-specialwarn").checked = data.settings?.speech?.options?.SPwarn ?? true;
 
-      t_viewType = (document.getElementById("viewTsunamiType").value = data.settings.viewTsunamiType || "1") - 0;
+    t_viewType = (document.getElementById("viewTsunamiType").value = data.settings.viewTsunamiType || "1") - 0;
 
-      elements.id.speechVolView.textContent = (data.settings?.speech?.volume ?? 1) * 100 + "%";
-      document.getElementsByName("themeColors")[0].value = data.settings?.theme?.color ?? 0;
-      if (data.settings.volume.quake){
-        data.settings.volume.quake.forEach((item, i) => {
-          document.getElementsByClassName("sound_quake_volume")[i].value = item.volume;
-          document.getElementsByClassName("sound_quake_type")[i].setAttribute("data-type", item.type);
-        });
-      }
-      colorThemeMode = data.settings?.theme?.color ?? 0;
-      audioAPI.setGainTimer(data.settings?.gainPrograms ?? []);
+    elements.id.speechVolView.textContent = (data.settings?.speech?.volume ?? 1) * 100 + "%";
+    document.getElementsByName("themeColors")[0].value = data.settings?.theme?.color ?? 0;
+    if (data.settings.volume.quake){
+      data.settings.volume.quake.forEach((item, i) => {
+        document.getElementsByClassName("sound_quake_volume")[i].value = item.volume;
+        document.getElementsByClassName("sound_quake_type")[i].setAttribute("data-type", item.type);
+      });
+    }
+    colorThemeMode = data.settings?.theme?.color ?? 0;
+    audioAPI.setGainTimer(data.settings?.gainPrograms ?? []);
 
     if (isSaveForced) savedata();
-      isSoraview = data.settings.soraview;
-      audioAPI.gainNode.gain.value = data.settings.volume.eewH / 100;
+    isSoraview = data.settings.soraview;
+    audioAPI.gainNode.gain.value = data.settings.volume.eewH / 100;
 
-      document.addEventListener("DOMContentLoaded", () => {
-        // console.log("DOMContentLoaded");
+    document.addEventListener("DOMContentLoaded", () => {
+      // console.log("DOMContentLoaded");
       resetNormalMode();
-      });
+    });
   }
 
   const audioEndedEvent = function (){
@@ -4637,11 +4670,16 @@ document.getElementById("speech-test1").addEventListener("click", function (){
     { type: "wait", time: 20 },
     { type: "path", speakerId: "speaker8", path: "VPOA50_issued" },
     { type: "wait", time: 20 },
-    { type: "path", speakerId: "speaker8", path: "ground.area.110000" },
-    { type: "path", speakerId: "speaker8", path: "ground.issue" },
+    { type: "path", speakerId: "speaker8", path: "warning.prefecture.011000" },
+    { type: "path", speakerId: "speaker8", path: "warning.landslide" },
+    { type: "wait", time: 20 },
+    { type: "path", speakerId: "speaker8", path: "warning.prefecture.320000" },
+    { type: "path", speakerId: "speaker8", path: "warning.rainfall" },
     { type: "wait", time: 20 },
     { type: "path", speakerId: "speaker8", path: "warning.prefecture.110000" },
-    { type: "path", speakerId: "speaker8", path: "warning.special_warn" }
+    { type: "path", speakerId: "speaker8", path: "warning.stormsurge" },
+    { type: "wait", time: 20 },
+    { type: "path", speakerId: "speaker8", path: "warning.flood" }
   ])
 });
 

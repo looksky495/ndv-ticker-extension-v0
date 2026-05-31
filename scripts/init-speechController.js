@@ -46,14 +46,12 @@ class AudioSpeechController extends EventTarget {
       int_dist: "quake/int-dist.wav",
       end: "quake/int-dist-end.wav"
     },
-    ground: {
-      area: Object.fromEntries(Object.keys(AreaForecastLocalM.ground).map(item => [item, "ground/area/" + item + ".wav"])),
-      clear: "ground/clear.wav",
-      issue: "ground/issue.wav"
-    },
     warning: {
       prefecture: Object.fromEntries(Object.keys(AreaForecastLocalM.warning).map(item => [item, "warning/prefecture/" + item + ".wav"])),
-      special_warn: "warning/special_warn.wav"
+      flood: "warning/flood.wav",
+      landslide: "warning/landslide.wav",
+      rainfall: "warning/rainfall.wav",
+      stormsurge: "warning/stormsurge.wav"
     },
     VPOA50_issued: "VPOA50_issued.wav"
   };
