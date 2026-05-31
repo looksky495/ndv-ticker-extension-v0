@@ -470,12 +470,18 @@ const normalText = (() => {
   };
 
   const updateCommand = function (index, commandId){
-    const commandInfo = COMMANDS.find(cmd => cmd.id === commandId);
-    if (!commandInfo) return;
-
     const item = textList[index];
-    item.type = "shortcut";
-    item.shortcutId = commandInfo.id;
+
+    if (commandId === ""){
+      item.type = "custom";
+      item.shortcutId = null;
+    } else {
+      const commandInfo = COMMANDS.find(cmd => cmd.id === commandId);
+      if (!commandInfo) return;
+
+      item.type = "shortcut";
+      item.shortcutId = commandInfo.id;
+    }
     render();
   };
 
