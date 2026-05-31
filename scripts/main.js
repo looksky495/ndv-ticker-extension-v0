@@ -781,11 +781,15 @@ const NewsOperator = {
       this.endTime = Date.now() + this.viewDuration;
       SetMode(3);
     }
+
+    // GUI 連携
+    viewWeatherWarningList();
     return !!this.endTime;
   },
   add: function (title, description, detail, {repeat = 1, duration = 18000} = {}){
     for (let i=0; i<repeat; i++) this.standby.push({title, description, detail, duration});
     if (!this.endTime) this.next();
+    viewWeatherWarningList();
   },
   /**
    * @return {Number} 1→0に
