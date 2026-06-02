@@ -3510,10 +3510,16 @@ const weatherVPZJ51 = dataXml => {
   }
 
   if (informations["情報タグ"]?.includes("台風")){
-    const meteorologicalText = dataXml.querySelector('Body > MeteorologicalInfos[type="概況"] > MeteorologicalInfo > Item > Kind > Property > Text').textContent || "";
-    const disasterPreventionText = dataXml.querySelector('Body > MeteorologicalInfos[type="防災事項"] > MeteorologicalInfo > Item > Kind > Property > Text').textContent || "";
-    const descriptionText = meteorologicalText + "　　" + disasterPreventionText;
-    NewsOperator.add(reportTitle, descriptionText, "", { duration: descriptionText.length * 150 });
+    const meteorologicalText = dataXml.querySelector('Body > MeteorologicalInfos[type="概況"] > MeteorologicalInfo > Item > Kind > Property > Text')?.textContent || "";
+    const disasterPreventionText = dataXml.querySelector('Body > MeteorologicalInfos[type="防災事項"] > MeteorologicalInfo > Item > Kind > Property > Text')?.textContent || "";
+
+    if (meteorologicalText || disasterPreventionText){
+      const descriptionText = meteorologicalText + "　　" + disasterPreventionText;
+      NewsOperator.add(reportTitle, descriptionText, "", { duration: descriptionText.length * 150 });
+    } else {
+      const headlineText = dataXml.querySelector("Head > Headline > Text").textContent;
+      NewsOperator.add(reportTitle, "", headlineText);
+    }
   }
 };
 
@@ -3542,13 +3548,19 @@ const weatherVPWWii = dataXml => {
     const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
     const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
 
+    if (mscale === 2 && ["13", "10", "18", "15", "12", "16", "17", "14", "19", "20", "21", "22", "23", "24", "25", "26"].includes(alertCode)) {
+      // M3 のときは注意報を表示しない
+      return;
+    }
+
     let mainText = "【 " + cityName + " 】 ";
     if (alertKindStatus === "発表"){
       mainText += "発表：" + alertName;
       issuedAlertCodes.push(alertCode);
     } else if (alertKindStatus === "解除"){
       mainText += "解除：" + alertName;
-      newsViewTime = 4000;
+      newsViewTime = 5000;
+      if (mscale === 2) return;
     } else {
       mainText += lastAlertName + " から " + alertName + " へ切り替え";
     }
