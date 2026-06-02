@@ -3382,7 +3382,7 @@ function weatherInfo(){
               dataType: 'xml',
               cache: true,
               success: function(c){
-                weatherVXKOii(NewsOperator, c);
+                weatherVXKOii(c);
               }
             });
           } else if (titleTextContent === "全般気象解説情報"){
