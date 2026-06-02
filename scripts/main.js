@@ -3520,56 +3520,6 @@ const weatherVPZJ51 = dataXml => {
 /**
  * @param {XMLDocument} dataXml
  */
-const weatherVXKOii_old = dataXml => {
-  const level = Number($(dataXml).find('Headline > Information[type="指定河川洪水予報（河川）"] Kind > Code').text());
-  if (ifrange(level, 50, 51)){
-    SFXController.play(sounds.warning.Flood5);
-    const riverAreaName = dataXml.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
-    const riverTitle = "【 " + dataXml.querySelector("Head > Title").textContent + " / 警戒レベル５相当 】";
-    NewsOperator.add(riverTitle, dataXml.querySelector('Head > Headline > Text').textContent, riverAreaName + "では、氾濫が発生した模様。");
-    for (const c2 of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
-      const type = c2.querySelector("Property > Type").textContent;
-      switch (type){
-      case "主文":
-        if (c2.getElementsByTagName("Areas").length){
-          NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, "対象の水位観測所： "+c2.querySelector("Areas > Area > Name").textContent+" "+c2.querySelector("Stations > Station > Name").textContent+"水位観測所 （"+c2.querySelector("Stations > Station > Location").textContent+"）");
-        } else {
-          NewsOperator.add(riverTitle, c2.querySelector("Kind > Property > Text").textContent, riverAreaName + "で氾濫発生。すぐに安全の確保をしてください。");
-        }
-        break;
-      case "浸水想定地区":
-        for (const e2 of c2.querySelectorAll("Areas > Area")){
-          const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
-          NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
-        }
-        break;
-      }
-    }
-  } else if(ifrange(level, 40, 41)){
-    SFXController.play(sounds.warning.Flood4);
-    const riverAreaName = dataXml.querySelector('Headline > Information[type="指定河川洪水予報（予報区域）"] > Item > Areas > Area > Name').textContent;
-    const riverTitle = "【 " + dataXml.querySelector('Head > Title').textContent + " / 警戒レベル４相当 】";
-    NewsOperator.add(riverTitle, dataXml.querySelector('Headline > Text').textContent, "対象河川： " + riverAreaName);
-    for (const e of dataXml.querySelectorAll('Body > Warning[type="指定河川洪水予報"] > Item')){
-      const type = e.querySelector("Property > Type").textContent;
-      switch (type){
-      case "主文":
-        NewsOperator.add(riverTitle, e.querySelector("Property > Text").textContent, "対象の水位観測所： " + e.querySelector("Areas > Area > Name").textContent + " " + e.querySelector("Stations > Station > Name").textContent + "水位観測所 （" + e.querySelector("Stations > Station > Location").textContent + "）");
-        break;
-      case "浸水想定地区":
-        for (const e2 of e.querySelectorAll("Areas > Area")){
-          const areaName = e2.getElementsByTagName("City")[0].textContent + e2.getElementsByTagName("Name")[0].textContent;
-          NewsOperator.add(riverTitle, "", "［氾濫による浸水に注意］ " + areaName, { duration: 4500 });
-        }
-        break;
-      }
-    }
-  }
-};
-
-/**
- * @param {XMLDocument} dataXml
- */
 const weatherVPWWii = dataXml => {
   const reportType = dataXml.querySelector('Control > Title').textContent;
   const parentAreaName = dataXml.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Name').textContent;
@@ -3591,7 +3541,6 @@ const weatherVPWWii = dataXml => {
     const alertCode = city.querySelector('Kind > Code').textContent;
     const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
     const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
-
 
     let mainText = "【 " + cityName + " 】 ";
     if (alertKindStatus === "発表"){
