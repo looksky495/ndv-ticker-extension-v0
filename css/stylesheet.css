@@ -309,32 +309,32 @@ button.switch-button {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
-:is(.nt-command-badge *)[data-kind='rank'] {
+.nt-command-badge[data-kind='rank'], .nt-command-badge *[data-kind='rank'] {
   background: #fff5f0;
   color: #c74900;
   border-color: #ffd9c0;
 }
-:is(.nt-command-badge *)[data-kind='precip'] {
+.nt-command-badge[data-kind='precip'], .nt-command-badge *[data-kind='precip'] {
   background: #f0f7fb;
   color: #0077cc;
   border-color: #c8e6ff;
 }
-:is(.nt-command-badge *)[data-kind='snow'] {
+.nt-command-badge[data-kind='snow'], .nt-command-badge *[data-kind='snow'] {
   background: #f0f4ff;
   color: #003da3;
   border-color: #d9e4ff;
 }
-:is(.nt-command-badge *)[data-kind='live'] {
+.nt-command-badge[data-kind='live'], .nt-command-badge *[data-kind='live'] {
   background: #f0fef0;
   color: #1e6b06;
   border-color: #c8f5c8;
 }
-:is(.nt-command-badge *)[data-kind='river'] {
+.nt-command-badge[data-kind='river'], .nt-command-badge *[data-kind='river'] {
   background: #f0f7ff;
   color: #004fbf;
   border-color: #ccebff;
 }
-:is(.nt-command-badge *)[data-kind='evac'] {
+.nt-command-badge[data-kind='evac'], .nt-command-badge *[data-kind='evac'] {
   background: #fff0f0;
   color: #d00000;
   border-color: #ffcccc;
@@ -484,7 +484,6 @@ button.switch-button {
 #eewTime {
   margin-left: 16px;
   font-size: 18px;
-
 }
 
 .tmpl-button {
