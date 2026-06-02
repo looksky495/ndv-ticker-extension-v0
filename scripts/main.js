@@ -3603,14 +3603,14 @@ const weatherVPWWii = dataXml => {
     }
 
     if (reportType.endsWith("（大雨）")){ // VPWW55
-      NewsOperator.add(newsTitle + "大雨", "", mainText, { duration: 8000 });
+      NewsOperator.add(newsTitle + "大雨", "", mainText, { duration: 7000 });
     } else if (reportType.endsWith("（土砂）")){ // VPWW56（従来の土砂災害警戒情報）
       // TODO: 読み上げ
 
       const criteriaPeriod = city.querySelector('Kind > Property > CriteriaPeriod > Base > Sentence')?.textContent;
       // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
-      NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: 8000 });
+      NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: 7000 });
       if (alertCode === "39"){ // 危険警報のみ
         SFXController.play(sounds.warning.GroundLoosening);
       }
@@ -3630,7 +3630,7 @@ const weatherVPWWii = dataXml => {
               const exceedHeight = tidalLevel.textContent;
               const subText = `${localName} ： ${tidalType} の高潮基準を ${exceedHeight}m 超過`;
 
-              NewsOperator.add(newsTitle + "高潮", subText, mainText, { duration: 8000 });
+              NewsOperator.add(newsTitle + "高潮", subText, mainText, { duration: 7000 });
 
               // 例「舞鶴湾 ： 最高うちあげ高水位 の高潮基準を 2.3m 超過」
               // 例「（高潮予報区間以外） ： 潮位 の高潮基準を 2m 超過」
@@ -3646,7 +3646,7 @@ const weatherVPWWii = dataXml => {
 
               texts.push(subText);
             }
-            NewsOperator.add(newsTitle + "高潮", texts.join(" ，　"), mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "高潮", texts.join(" ，　"), mainText, { duration: 7000 });
 
             // 例「最高うちあげ高水位 の高潮基準を 2.3m 超過 ，　潮位 の高潮基準を 2m 超過」
           }
@@ -3674,7 +3674,7 @@ const weatherVPWWii = dataXml => {
 
               texts.push(subText);
             }
-            NewsOperator.add(newsTitle + "暴風", texts.join(" ，　"), mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "暴風", texts.join(" ，　"), mainText, { duration: 7000 });
             // 例「陸上：西の風（風雪） 13 m/s ，　オホーツク海：西の風 25 m/s」
           } else {
             const windDirection = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("description");
@@ -3682,7 +3682,7 @@ const weatherVPWWii = dataXml => {
             const windSpeed = property.querySelector('WindSpeedPart > Base > WindSpeed').textContent;
             const subText = `${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
 
-            NewsOperator.add(newsTitle + "暴風", subText, mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "暴風", subText, mainText, { duration: 7000 });
             // 例「西の風（風雪） 15 m/s」
           }
         }
@@ -3704,13 +3704,13 @@ const weatherVPWWii = dataXml => {
 
               texts.push(subText);
             }
-            NewsOperator.add(newsTitle + "波浪", "［波高］ " + texts.join(" ，　"), mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "波浪", "［波高］ " + texts.join(" ，　"), mainText, { duration: 7000 });
             // 例「［波高］ 陸上：3 m ，　オホーツク海：6 m」
           } else {
             const waveHeight = property.querySelector('WaveHeightPart > Base > WaveHeight').textContent;
             const subText = `${waveHeight} m`;
 
-            NewsOperator.add(newsTitle + "波浪", "［波高］ " + subText, mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "波浪", "［波高］ " + subText, mainText, { duration: 7000 });
             // 例「［波高］ 3 m」
           }
         }
@@ -3736,7 +3736,7 @@ const weatherVPWWii = dataXml => {
               }
               const subText = `${localName} ： ${texts.join(" ，　")}`;
 
-              NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 8000 });
+              NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 7000 });
               // 例「陸上 ： 6時間最大降雪量 40 cm ，　12時間最大降雪量 60 cm」
             }
           } else {
@@ -3749,7 +3749,7 @@ const weatherVPWWii = dataXml => {
             }
             const subText = texts.join(" ，　");
 
-            NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 8000 });
+            NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: 7000 });
             // 例「12時間最大降雪量 60 cm ，　24時間最大降雪量 90 cm」
           }
         }
@@ -3969,7 +3969,7 @@ DataOperator.tsunami.onUpdate = (data, vtse41, vtse51) => {
     if (vtse41){
       SFXController.play(sounds.tsunami[["", "watch", "notice", "warning", "majorwarning"][DataOperator.tsunami.warnLevel]]);
       const warnLevelStr = ["", "津波予報", "津波注意報", "津波警報", "大津波警報"][DataOperator.tsunami.warnLevel];
-      NewsOperator.add(warnLevelStr, "", "津波予報が更新されました。", { duration: 8000 });
+      NewsOperator.add(warnLevelStr, "", "津波予報が更新されました。", { duration: 7000 });
       for (const text of DataOperator.tsunami.text.forecast_news){
         NewsOperator.add(warnLevelStr, "", text, {duration: 7500});
       }
