@@ -2,7 +2,7 @@
   "background": {
     "service_worker": "scripts/background.js"
   },
-  "version": "0.7.1",
+  "version": "0.8.0",
   "action": {
     "default_icon": {
       "128": "img/icon128.png"

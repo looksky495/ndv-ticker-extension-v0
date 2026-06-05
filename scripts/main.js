@@ -45,10 +45,11 @@ const AppVersionHistory = [
   "β0.6.1",
   "β0.7.0",
   "β0.7.1",
+  "β0.8.0",
 ];
 
-const AppVersionCode = "beta33";
-const AppVersionView = "β0.7.1";
+const AppVersionCode = "beta34";
+const AppVersionView = "β0.8.0";
 console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
@@ -3574,7 +3575,7 @@ const weatherVPWWii = dataXml => {
       // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
       NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: newsViewTime });
-      if (alertCode === "39"){ // 危険警報のみ
+      if (alertCode === "49"){ // 危険警報のみ
         SFXController.play(sounds.warning.GroundLoosening);
       }
     } else if (reportType.endsWith("（高潮）")){ // VPWW57
