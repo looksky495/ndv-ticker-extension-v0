@@ -1052,11 +1052,11 @@ const translateMaxHeight = (tsunamiHeight, condition, about) => {
     maxHeightEN = maxHtemp + " meter(s)";
     // jma.go.jp/bosai/tsunami/data/ のJSONにここらへんの表現入れて欲しい
     if (tsunamiHeight.includes(">")){
-      maxHeightJP = maxHeightJP + "未満";
-      maxHeightEN = "Under " + maxHeightEN;
-    } else if (tsunamiHeight.includes("<")){
       maxHeightJP = maxHeightJP + "以上";
       maxHeightEN = "Over " + maxHeightEN;
+    } else if (tsunamiHeight.includes("<")){
+      maxHeightJP = maxHeightJP + "未満";
+      maxHeightEN = "Under " + maxHeightEN;
     } else {
       if (tsunamiHeight.includes("+")){
         maxHeightJP = maxHeightJP + "（上昇中）";
