@@ -1572,7 +1572,8 @@ BigInt.prototype.byteToString = Number.prototype.byteToString;
 
 const Routines = {
   memory: {
-    lastTime: ""
+    lastDisplayTime: "",
+    lastAnimationTimestamp: 0,
   },
   previousCPU: undefined,
   isDrawNormalTitle: true,
@@ -1635,8 +1636,14 @@ const Routines = {
     context.fillStyle = colorScheme[colorThemeMode][5][3][mscale];
     context.fillText(NewsOperator.viewing.title, 35, 45, 1010);
   },
-  main: function mainRoutines(){
+  main: function mainRoutines(lastAnimationTimestamp){
     try {
+    // 60 fps 以上の更新は行わない
+    const currentTime = Date.now();
+    const deltaTime = currentTime - lastAnimationTimestamp;
+    if (deltaTime < 16) return;
+    Routines.memory.lastAnimationTimestamp = currentTime;
+
     if (viewMode !== 1) drawRect(0, 60, 1080, 68, colorScheme[colorThemeMode][5][0]);
     context.font = '300 40px ' + FontFamilies.sans;
     //context.font = '40px Arial, "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, メイリオ, Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif';
@@ -2204,7 +2211,7 @@ const Routines = {
     // 分更新動作
     const currentTimeDate = Math.floor(targetTime / 60000);
     if (Routines.judgeIsClockFontLoaded()){
-      if (currentTimeDate != Routines.memory.lastTime){
+      if (currentTimeDate != Routines.memory.lastDisplayTime){
         Routines.subCanvasTime(targetTime);
       }
     } else {
@@ -2216,7 +2223,7 @@ const Routines = {
       time.fillText("読み込み中", 120, 117, 120);
       time.textAlign = "start";
     }
-    if (currentTimeDate != Routines.memory.lastTime){
+    if (currentTimeDate != Routines.memory.lastDisplayTime){
       for (const task of audioAPI.gainTimer){
         if (!task.effective) continue;
         if (!(task.time.h === targetTime.getHours() && task.time.m === targetTime.getMinutes())) continue;
@@ -2227,7 +2234,7 @@ const Routines = {
         }
       }
     }
-    Routines.memory.lastTime = currentTimeDate;
+    Routines.memory.lastDisplayTime = currentTimeDate;
 
     // Auto Save
     if (lastSaveTime + 30000 <= Date.now()) savedata();
