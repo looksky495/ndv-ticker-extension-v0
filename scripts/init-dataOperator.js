@@ -640,7 +640,7 @@ const it = window.DataOperator = {
             } else {
               detail.summaryText.depth = [
                 "震源の深さは不明です。",
-                "The quake"
+                ""
               ];
             }
           }
