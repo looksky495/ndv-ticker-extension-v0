@@ -123,10 +123,25 @@
       </div>
       <div class="tab-item opt-hide">
         <h2>気象速報</h2>
-        タイトル　　：<input type="text" id="BNtitle" style="width:300px;"><br>
-        サブタイトル：<input type="text" id="BNtext1" style="width:700px;"><br>
-        テキスト　　：<input type="text" id="BNtext2" style="width:700px;"><br>
-        <input type="button" name="BreakingNewsView" value="反映"><br>
+        <div style="display: flex; flex-direction: row; gap: 25px; margin: 0 10px;">
+          <div>気象警報・注意報量の制限</div>
+          <div>
+            <div>
+              <input type="checkbox" id="weatherWarn.control.ignoreAdvisory">
+              <label for="weatherWarn.control.ignoreAdvisory">常に注意報の発表・解除を非表示</label>
+            </div>
+            <div>
+              <input type="checkbox" id="weatherWarn.control.ignoreWarning">
+              <label for="weatherWarn.control.ignoreWarning">常に警報以下の発表・解除を非表示</label>
+            </div>
+          </div>
+        </div>
+        <div style="margin: 10px 6px;">
+          タイトル　　：<input type="text" id="BNtitle" style="width:300px;"><br>
+          サブタイトル：<input type="text" id="BNtext1" style="width:700px;"><br>
+          テキスト　　：<input type="text" id="BNtext2" style="width:700px;"><br>
+          <button type="button" id="weatherWarn.manualAdd">追加</button>
+        </div>
         <button type="button" id="weatherWarn.clearAll">すべての気象情報をクリア</button>
         <div class="wtWarnChecking">
           <div class="wtWarnListMsg">表示待機中の気象情報はありません</div>

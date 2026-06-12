@@ -186,6 +186,12 @@ const elements = {
     /** @type {HTMLInputElement} */ speechCheckboxQuake: document.getElementById("speech-checkbox-quake"),
     /** @type {HTMLInputElement} */ speechCheckboxVPOA50: document.getElementById("speech-checkbox-vpoa50"),
     /** @type {HTMLInputElement} */ speechCheckboxSPwarn: document.getElementById("speech-checkbox-specialwarn"),
+    weatherWarn: {
+      control: {
+        /** @type {HTMLInputElement} */ ignoreAdvisory: document.getElementById("weatherWarn.control.ignoreAdvisory"),
+        /** @type {HTMLInputElement} */ ignoreWarning: document.getElementById("weatherWarn.control.ignoreWarning"),
+      }
+    }
   },
   class: {
     tab_item: Array.from(document.getElementsByClassName("tab-item")),
@@ -1456,14 +1462,13 @@ function drawRect(x, y, width, height, color){
 function ExRandom(min, max){
   return Math.floor( Math.random() * (max + 1 - min) ) + min ;
 }
-function BNref(){
-  NewsOperator.clearAll();
+function addWeatherWarnManually(){
+  // NewsOperator.clearAll();
   NewsOperator.add(
     document.getElementById('BNtitle').value,
     document.getElementById('BNtext1').value,
     document.getElementById('BNtext2').value
   );
-  textOffsetX = 0;
 }
 
 var keyWord = "";
@@ -3559,10 +3564,17 @@ const weatherVPWWii = dataXml => {
     const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
     const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
 
-    if (mscale === 2 && ["13", "10", "18", "15", "12", "16", "17", "14", "19", "20", "21", "22", "23", "24", "25", "26"].includes(alertCode)) {
-      // M3 のときは注意報を表示しない
-      return;
-    }
+    // 注意報に対しての処理
+    if (
+      (elements.id.weatherWarn.control.ignoreAdvisory.checked || elements.id.weatherWarn.control.ignoreWarning.checked)
+      && ["13", "10", "18", "15", "12", "16", "17", "14", "19", "20", "21", "22", "23", "24", "25", "26"].includes(alertCode)
+    ) return;
+
+    // 警報に対しての処理
+    if (
+      elements.id.weatherWarn.control.ignoreWarning.checked
+      && ["02", "03", "04", "05", "06", "07", "08", "09"].includes(alertCode)
+    ) return;
 
     let mainText = "【 " + cityName + " 】 ";
     if (alertKindStatus === "発表"){
@@ -4597,7 +4609,7 @@ document.getElementsByName("tmpl-button")[8].addEventListener('click', function(
 document.getElementById("speedVal").addEventListener('input', function (){
   changeTextSpeed();
 });
-document.getElementsByName("BreakingNewsView")[0].addEventListener('click', function(){BNref()});
+document.getElementById("weatherWarn.manualAdd").addEventListener("click", function(){ addWeatherWarnManually() });
 document.getElementById("weatherWarn.clearAll").addEventListener("click", function (){ NewsOperator.clearAll(); });
 document.getElementsByName("sorabtn")[0].addEventListener('click', function(){sorabtn_view()});
 document.getElementsByName("sorabtn")[1].addEventListener('click', function(){sorabtn_open()});

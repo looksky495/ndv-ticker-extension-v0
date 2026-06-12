@@ -2,6 +2,10 @@
 
 現在、正式版の v1 を開発中です。進捗は [looksky495/ndv-ticker-extension](https://github.com/looksky495/ndv-ticker-extension) から確認できます！
 
+## 追加
+
+* 気象警報・注意報の表示量を制限できるようになりました。「気象速報」タブから設定できます。
+
 ## 修正
 
 * 意図せず 60 fps を超える更新が行われていた問題を修正しました。
