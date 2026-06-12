@@ -3536,9 +3536,12 @@ const weatherVPZJ51 = dataXml => {
  */
 const weatherVPWWii = dataXml => {
   const reportType = dataXml.querySelector('Control > Title').textContent;
-  const parentAreaName = dataXml.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Name').textContent;
-  const newsTitle = "気象警報・注意報　";
+  const parentAreaCode = dataXml.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Code').textContent;
+  const parentAreaName = ["01", "46", "47"].includes(parentAreaCode.slice(0, 2))
+    ? {"01": "北海道", "46": "鹿児島県", "47": "沖縄県"}[parentAreaCode.slice(0, 2)]
+    : dataXml.querySelector('Body > Warning[type="気象警報・注意報（府県予報区等）"] > Item > Area > Name').textContent;
 
+  const newsTitle = "気象警報・注意報　";
   const forecastCities = dataXml.querySelectorAll('Body > Warning[type="気象警報・注意報（市町村等）"] > Item');
   const headlineText = dataXml.querySelector('Head > Headline > Text').textContent;
 
