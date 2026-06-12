@@ -2250,7 +2250,7 @@ const Routines = {
 
     // AudioAPI alarm adjustment
     if (q_startTime % 10 === 0){
-      audioAPI.fun["freq"+(q_startTime%16>7?"B5":"E6")]();
+      audioAPI.fun["freq" + (q_startTime % 20 > 7 ? "B5" : "E6")]();
     }
 
     //audio repeatition control
