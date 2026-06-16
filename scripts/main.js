@@ -1236,6 +1236,12 @@ async function savedata(){
       // ],
       viewTsunamiType: elements.id.viewTsunamiType.value,
       soraview: document.getElementById('isSoraview').checked,
+      weatherWarn: {
+        ignore: {
+          advisory: document.getElementById("weatherWarn.control.ignoreAdvisory").checked,
+          warning: document.getElementById("weatherWarn.control.ignoreWarning").checked,
+        }
+      },
       details: {
         earthquake: {
           intensity: document.getElementsByName('minint')[0].value,
@@ -1254,7 +1260,6 @@ async function savedata(){
         quake: document.getElementById("setClipQuake").checked
       },
       interval: {
-        iedred7584EEW: document.getElementById("setIntervalIedred").valueAsNumber,
         nhkQuake: elements.id.setIntervalNHKquake.valueAsNumber,
         jmaDevFeed: elements.id.setIntervalJmaWt.valueAsNumber,
         warnInfo: elements.id.setIntervalWarn.valueAsNumber,
@@ -2458,7 +2463,7 @@ var eewEpiPos = [992,63];
 /**
  *  @param {float} longitude
  *  @param {float} latitude
- *  @param {iedred7584EEW.Data.Forecast} warnAreas
+ *  @param {Array} warnAreas
  */
 async function eewMapDraw(longitude, latitude, warnAreas=[]){
   try {
@@ -4504,7 +4509,10 @@ const byteToString = byte => {
     document.getElementById('isSoraview').checked = data.settings.soraview;
     document.getElementById('setClipEEW').checked = data.settings.clipboard.eew;
     document.getElementById('setClipQuake').checked = data.settings.clipboard.quake;
-    document.getElementById('setIntervalIedred').value = data.settings.interval.iedred7584EEW;
+
+    document.getElementById("weatherWarn.control.ignoreAdvisory").checked = data.settings.weatherWarn?.ignore?.advisory ?? false;
+    document.getElementById("weatherWarn.control.ignoreWarning").checked = data.settings.weatherWarn?.ignore?.warning ?? false;
+
     document.getElementById('setIntervalNHKquake').value = data.settings.interval.nhkQuake;
     document.getElementById('setIntervalJmaWt').value = data.settings.interval.jmaDevFeed;
     document.getElementById('setIntervalTenkiJpTsu').value = data.settings.interval.tenkiJPtsunami;
