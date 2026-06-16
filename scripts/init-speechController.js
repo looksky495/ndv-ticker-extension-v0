@@ -15,7 +15,9 @@ class AudioSpeechController extends EventTarget {
   #wholeGain = null;
   #sourceGain = null;
   #canPlay = null;
+  #enabled = true;
   #paused = true;
+
   #speakers = [];
   #urls = {
     common: {
@@ -150,11 +152,29 @@ class AudioSpeechController extends EventTarget {
   }
 
   /**
-   * キューに登録し、読み上げを開始する
+   * 読み上げの有効／無効。無効にした場合、キューに残っている読み上げは全てキャンセルされます。
+   * @param {Boolean} bool
+   */
+  set enabled (bool){
+    if (bool){
+      this.#enabled = true;
+    } else {
+      this.#enabled = false;
+      this.allCancel();
+    }
+  }
+  get enabled (){
+    return this.#enabled;
+  }
+
+  /**
+   * キューに登録し、読み上げを開始します。
    * @param {AudioSpeechQueueParam[]} speechData 読み上げデータ
    */
   async start (speechData = []){
     if (!this.isInitializing) return;
+    if (!this.enabled) return;
+
     this.#argumentValidation(speechData, Array, "start");
     for (let i=0; i<speechData.length; i++){
       const item = speechData[i];

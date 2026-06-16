@@ -1284,6 +1284,7 @@ async function savedata(){
       },
       gainPrograms: audioAPI.gainTimer,
       speech: {
+        enabled: document.getElementById("speech-enabled").value === "1",
         volume: document.getElementById("speech-vol-input").valueAsNumber,
         options: {
           EEW: elements.id.speechCheckboxEEW.checked,
@@ -3550,198 +3551,284 @@ const weatherVPWWii = dataXml => {
   const forecastCities = dataXml.querySelectorAll('Body > Warning[type="気象警報・注意報（市町村等）"] > Item');
   const headlineText = dataXml.querySelector('Head > Headline > Text').textContent;
 
+  const ADVISORY_CODES = [
+    "10", // レベル２大雨注意報
+    "12", // 大雪注意報
+    "13", // 風雪注意報
+    "14", // 雷注意報
+    "15", // 強風注意報
+    "16", // 波浪注意報
+    "17", // 融雪注意報
+    "18", // 洪水注意報
+    "19", // レベル２高潮注意報
+    "20", // 濃霧注意報
+    "21", // 乾燥注意報
+    "22", // なだれ注意報
+    "23", // 低温注意報
+    "24", // 霜注意報
+    "25", // 着氷注意報
+    "26", // 着雪注意報
+    "27", // その他の注意報
+    "29", // レベル２土砂災害注意報
+  ];
+
+  const WARNING_CODES = [
+    "02", // 暴風雪警報
+    "03", // レベル３大雨警報
+    "04", // 洪水警報
+    "05", // 暴風警報
+    "06", // 大雪警報
+    "07", // 波浪警報
+    "08", // レベル３高潮警報
+    "09", // レベル３土砂災害警報
+  ];
+
   const issuedAlertCodes = [];
   let newsViewTime = 7000;
 
   for (const city of forecastCities){
-    const alertKindStatus = city.querySelector('Kind > Status').textContent;
-    if (alertKindStatus === "継続" || alertKindStatus === "発表警報・注意報はなし") {
+    const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
+    const kinds = city.querySelectorAll('Kind');
+
+    const issuedKinds = [];   // 発表
+    const clearedKinds = [];  // 解除
+    const switchedKinds = []; // 切替（発表/解除/継続/発表警報・注意報はなし　以外）
+
+    for (const kind of kinds){
+      const alertKindStatus = kind.querySelector('Status').textContent;
+      if (alertKindStatus === "継続" || alertKindStatus === "発表警報・注意報はなし") {
+        continue;
+      }
+
+      const alertCode = kind.querySelector('Code').textContent;
+      const lastAlertCode = kind.querySelector('LastKind > Code')?.textContent;
+
+      // 注意報に対しての処理（注意報は解除のとき alertCode に解除前のコードが入る）
+      if (
+        (elements.id.weatherWarn.control.ignoreAdvisory.checked || elements.id.weatherWarn.control.ignoreWarning.checked)
+        && ADVISORY_CODES.includes(alertCode)
+      ) continue;
+
+      // 警報に対しての処理（警報は切り替えのとき alertCode に切り替え前のコードが入らない）
+      if (
+        elements.id.weatherWarn.control.ignoreWarning.checked
+        && WARNING_CODES.includes(alertKindStatus === "発表" ? alertCode : lastAlertCode)
+      ) continue;
+
+      if (alertKindStatus === "発表"){
+        issuedKinds.push(kind);
+      } else if (alertKindStatus === "解除"){
+        clearedKinds.push(kind);
+      } else {
+        switchedKinds.push(kind);
+      }
+    }
+
+    if (issuedKinds.length === 0 && clearedKinds.length === 0 && switchedKinds.length === 0){
       continue;
     }
 
-    const alertName = city.querySelector('Kind > Name').textContent;
-    const alertCode = city.querySelector('Kind > Code').textContent;
-    const lastAlertName = city.querySelector('Kind > LastKind > Name')?.textContent;
-    const cityName = parentAreaName + city.querySelector('Area > Name').textContent;
+    // 発表・解除：同じcity内のKindをまとめて1メッセージ
+    // 切替　　　：Kindごとに個別の1メッセージ
+    const messages = [];
 
-    // 注意報に対しての処理
-    if (
-      (elements.id.weatherWarn.control.ignoreAdvisory.checked || elements.id.weatherWarn.control.ignoreWarning.checked)
-      && ["13", "10", "18", "15", "12", "16", "17", "14", "19", "20", "21", "22", "23", "24", "25", "26"].includes(alertCode)
-    ) return;
-
-    // 警報に対しての処理
-    if (
-      elements.id.weatherWarn.control.ignoreWarning.checked
-      && ["02", "03", "04", "05", "06", "07", "08", "09"].includes(alertCode)
-    ) return;
-
-    let mainText = "【 " + cityName + " 】 ";
-    if (alertKindStatus === "発表"){
-      mainText += "発表：" + alertName;
-      issuedAlertCodes.push(alertCode);
-    } else if (alertKindStatus === "解除"){
-      mainText += "解除：" + alertName;
-      newsViewTime = 5000;
-      if (mscale === 2) return;
-    } else {
-      mainText += lastAlertName + " から " + alertName + " へ切り替え";
+    if (issuedKinds.length > 0){
+      const names = issuedKinds.map(k => k.querySelector('Name').textContent);
+      for (const kind of issuedKinds){
+        issuedAlertCodes.push(kind.querySelector('Code').textContent);
+      }
+      messages.push({
+        mainText: "【 " + cityName + " 】 発表：" + names.join("、"),
+        kinds: issuedKinds,
+      });
     }
 
-    if (reportType.endsWith("（大雨）")){ // VPWW55
-      NewsOperator.add(newsTitle + "大雨", "", mainText, { duration: newsViewTime });
-    } else if (reportType.endsWith("（土砂）")){ // VPWW56（従来の土砂災害警戒情報）
-      // TODO: 読み上げ
-
-      const criteriaPeriod = city.querySelector('Kind > Property > CriteriaPeriod > Base > Sentence')?.textContent;
-      // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
-
-      NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: newsViewTime });
-      if (alertCode === "49"){ // 危険警報のみ
-        SFXController.play(sounds.warning.GroundLoosening);
+    if (clearedKinds.length > 0){
+      newsViewTime = 5000;
+      if (mscale !== 2){
+        const names = clearedKinds.map(k => k.querySelector('Name').textContent);
+        messages.push({
+          mainText: "【 " + cityName + " 】 解除：" + names.join("、"),
+          kinds: clearedKinds,
+        });
       }
-    } else if (reportType.endsWith("（高潮）")){ // VPWW57
-      const properties = city.querySelectorAll('Kind > Property');
-      for (const property of properties){
-        const propertyType = property.querySelector('Type').textContent;
-        if (propertyType === "高潮基準超過"){
-          const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
+    }
 
-          if (isLocal){
-            const locals = property.querySelectorAll('WaveHeightPart > Base > Local, TidalLevelPart > Base > Local');
-            for (const local of locals){
-              const localName = local.querySelector('AreaName').textContent;
-              const tidalLevel = local.querySelector('TidalLevel, WaveHeight');
-              const tidalType = tidalLevel.getAttribute('type');
-              const exceedHeight = tidalLevel.textContent;
-              const subText = `${localName} ： ${tidalType} の高潮基準を ${exceedHeight}m 超過`;
+    for (const kind of switchedKinds){
+      const alertName = kind.querySelector('Name').textContent;
+      const lastAlertName = kind.querySelector('LastKind > Name')?.textContent;
+      messages.push({
+        mainText: "【 " + cityName + " 】 " + lastAlertName + " から " + alertName + " へ切り替え",
+        kinds: [kind],
+      });
+    }
 
-              NewsOperator.add(newsTitle + "高潮", subText, mainText, { duration: newsViewTime });
+    // --- 電文種別ごとの表示処理 ---
+    for (const { mainText, kinds: msgKinds } of messages){
+      if (reportType.endsWith("（大雨）")){ // VPWW55
+        NewsOperator.add(newsTitle + "大雨", "", mainText, { duration: newsViewTime });
+      } else if (reportType.endsWith("（土砂）")){ // VPWW56（従来の土砂災害警戒情報）
+        for (const kind of msgKinds){
+          // TODO: 読み上げ
 
-              // 例「舞鶴湾 ： 最高うちあげ高水位 の高潮基準を 2.3m 超過」
-              // 例「（高潮予報区間以外） ： 潮位 の高潮基準を 2m 超過」
-            }
-          } else {
-            const bases = property.querySelectorAll('WaveHeightPart > Base, TidalLevelPart > Base');
-            const texts = [];
-            for (const base of bases){
-              const baseLevel = base.querySelector('TidalLevel, WaveHeight');
-              const tidalType = baseLevel.getAttribute('type');
-              const exceedHeight = baseLevel.textContent;
-              const subText = `${tidalType} の高潮基準を ${exceedHeight}m 超過`;
+          const criteriaPeriod = kind.querySelector('Property > CriteriaPeriod > Base > Sentence')?.textContent;
+          // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
-              texts.push(subText);
-            }
-            NewsOperator.add(newsTitle + "高潮", texts.join(" ，　"), mainText, { duration: newsViewTime });
-
-            // 例「最高うちあげ高水位 の高潮基準を 2.3m 超過 ，　潮位 の高潮基準を 2m 超過」
-          }
-
-        }
-      }
-    } else if (reportType.endsWith("（暴風）")){ // VPWW58
-      const properties = city.querySelectorAll('Kind > Property');
-      for (const property of properties){
-        const propertyType = property.querySelector('Type').textContent;
-        if (propertyType === "風"){
-          const isLocal = !!property.querySelector('WindDirectionPart > Base > Local');
-
-          if (isLocal){
-            const windDirections = Array.from(property.querySelectorAll('WindDirectionPart > Base > Local'));
-            const windSpeeds = Array.from(property.querySelectorAll('WindSpeedPart > Base > Local'));
-
-            const texts = [];
-            for (let i = 0, l = windDirections.length; i < l; i++){
-              const localName = windDirections[i].querySelector('AreaName').textContent;
-              const windCondition = windDirections[i].querySelector('WindDirection').getAttribute("condition");
-              const windDirection = windDirections[i].querySelector('WindDirection').getAttribute("description");
-              const windSpeed = windSpeeds[i].querySelector('WindSpeed').textContent;
-              const subText = `${localName}：${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
-
-              texts.push(subText);
-            }
-            NewsOperator.add(newsTitle + "暴風", texts.join(" ，　"), mainText, { duration: newsViewTime });
-            // 例「陸上：西の風（風雪） 13 m/s ，　オホーツク海：西の風 25 m/s」
-          } else {
-            const windDirection = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("description");
-            const windCondition = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("condition");
-            const windSpeed = property.querySelector('WindSpeedPart > Base > WindSpeed').textContent;
-            const subText = `${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
-
-            NewsOperator.add(newsTitle + "暴風", subText, mainText, { duration: newsViewTime });
-            // 例「西の風（風雪） 15 m/s」
+          NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: newsViewTime });
+          if (kind.querySelector('Code').textContent === "49"){ // 危険警報のみ
+            SFXController.play(sounds.warning.GroundLoosening);
           }
         }
-      }
-    } else if (reportType.endsWith("（波浪）")){ // VPWW59
-      const properties = city.querySelectorAll('Kind > Property');
-      for (const property of properties){
-        const propertyType = property.querySelector('Type').textContent;
-        if (propertyType === "波"){
-          const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
+      } else if (reportType.endsWith("（高潮）")){ // VPWW57
+        for (const kind of msgKinds){
+          const properties = kind.querySelectorAll('Property');
+          for (const property of properties){
+            const propertyType = property.querySelector('Type').textContent;
+            if (propertyType === "高潮基準超過"){
+              const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
 
-          if (isLocal){
-            const locals = property.querySelectorAll('WaveHeightPart > Base > Local');
-            const texts = [];
-            for (const local of locals){
-              const localName = local.querySelector('AreaName').textContent;
-              const waveHeight = local.querySelector('WaveHeight').textContent;
-              const subText = `${localName}：${waveHeight} m`;
+              if (isLocal){
+                const locals = property.querySelectorAll('WaveHeightPart > Base > Local, TidalLevelPart > Base > Local');
+                for (const local of locals){
+                  const localName = local.querySelector('AreaName').textContent;
+                  const tidalLevel = local.querySelector('TidalLevel, WaveHeight');
+                  const tidalType = tidalLevel.getAttribute('type');
+                  const exceedHeight = tidalLevel.textContent;
+                  const subText = `${localName} ： ${tidalType} の高潮基準を ${exceedHeight}m 超過`;
 
-              texts.push(subText);
-            }
-            NewsOperator.add(newsTitle + "波浪", "［波高］ " + texts.join(" ，　"), mainText, { duration: newsViewTime });
-            // 例「［波高］ 陸上：3 m ，　オホーツク海：6 m」
-          } else {
-            const waveHeight = property.querySelector('WaveHeightPart > Base > WaveHeight').textContent;
-            const subText = `${waveHeight} m`;
+                  NewsOperator.add(newsTitle + "高潮", subText, mainText, { duration: newsViewTime });
 
-            NewsOperator.add(newsTitle + "波浪", "［波高］ " + subText, mainText, { duration: newsViewTime });
-            // 例「［波高］ 3 m」
-          }
-        }
-      }
-    } else if (reportType.endsWith("（大雪）")){ // VPWW60
-      const properties = city.querySelectorAll('Kind > Property');
-      for (const property of properties){
-        const propertyType = property.querySelector('Type').textContent;
-        if (propertyType === "雪"){
-          const isLocal = !!property.querySelector('SnowfallDepthPart > Base > Local');
+                  // 例「舞鶴湾 ： 最高うちあげ高水位 の高潮基準を 2.3m 超過」
+                  // 例「（高潮予報区間以外） ： 潮位 の高潮基準を 2m 超過」
+                }
+              } else {
+                const bases = property.querySelectorAll('WaveHeightPart > Base, TidalLevelPart > Base');
+                const texts = [];
+                for (const base of bases){
+                  const baseLevel = base.querySelector('TidalLevel, WaveHeight');
+                  const tidalType = baseLevel.getAttribute('type');
+                  const exceedHeight = baseLevel.textContent;
+                  const subText = `${tidalType} の高潮基準を ${exceedHeight}m 超過`;
 
-          if (isLocal){
-            const locals = property.querySelectorAll('SnowfallDepthPart > Base > Local');
-            for (const local of locals){
-              const localName = local.querySelector('AreaName').textContent;
-              const snowfalls = local.querySelectorAll('SnowfallDepth');
+                  texts.push(subText);
+                }
+                NewsOperator.add(newsTitle + "高潮", texts.join(" ，　"), mainText, { duration: newsViewTime });
 
-              const texts = [];
-              for (const snowfall of snowfalls){
-                const snowfallType = zen2han(snowfall.getAttribute('type'));
-                const snowfallDepth = snowfall.textContent;
-                texts.push(`${snowfallType} ${snowfallDepth} cm`);
+                // 例「最高うちあげ高水位 の高潮基準を 2.3m 超過 ，　潮位 の高潮基準を 2m 超過」
               }
-              const subText = `${localName} ： ${texts.join(" ，　")}`;
-
-              NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: newsViewTime });
-              // 例「陸上 ： 6時間最大降雪量 40 cm ，　12時間最大降雪量 60 cm」
             }
-          } else {
-            const snowfalls = property.querySelectorAll('SnowfallDepthPart > Base > SnowfallDepth');
-            const texts = [];
-            for (const snowfall of snowfalls){
-              const snowfallType = zen2han(snowfall.getAttribute('type'));
-              const snowfallDepth = snowfall.textContent;
-              texts.push(`${snowfallType} ${snowfallDepth} cm`);
-            }
-            const subText = texts.join(" ，　");
-
-            NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: newsViewTime });
-            // 例「12時間最大降雪量 60 cm ，　24時間最大降雪量 90 cm」
           }
         }
+      } else if (reportType.endsWith("（暴風）")){ // VPWW58
+        for (const kind of msgKinds){
+          const properties = kind.querySelectorAll('Property');
+          for (const property of properties){
+            const propertyType = property.querySelector('Type').textContent;
+            if (propertyType === "風"){
+              const isLocal = !!property.querySelector('WindDirectionPart > Base > Local');
+
+              if (isLocal){
+                const windDirections = Array.from(property.querySelectorAll('WindDirectionPart > Base > Local'));
+                const windSpeeds = Array.from(property.querySelectorAll('WindSpeedPart > Base > Local'));
+
+                const texts = [];
+                for (let i = 0, l = windDirections.length; i < l; i++){
+                  const localName = windDirections[i].querySelector('AreaName').textContent;
+                  const windCondition = windDirections[i].querySelector('WindDirection').getAttribute("condition");
+                  const windDirection = windDirections[i].querySelector('WindDirection').getAttribute("description");
+                  const windSpeed = windSpeeds[i].querySelector('WindSpeed').textContent;
+                  const subText = `${localName}：${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
+
+                  texts.push(subText);
+                }
+                NewsOperator.add(newsTitle + "暴風", texts.join(" ，　"), mainText, { duration: newsViewTime });
+                // 例「陸上：西の風（風雪） 13 m/s ，　オホーツク海：西の風 25 m/s」
+              } else {
+                const windDirection = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("description");
+                const windCondition = property.querySelector('WindDirectionPart > Base > WindDirection').getAttribute("condition");
+                const windSpeed = property.querySelector('WindSpeedPart > Base > WindSpeed').textContent;
+                const subText = `${windDirection}${windCondition ? `（${windCondition}）` : ''} ${windSpeed} m/s`;
+
+                NewsOperator.add(newsTitle + "暴風", subText, mainText, { duration: newsViewTime });
+                // 例「西の風（風雪） 15 m/s」
+              }
+            }
+          }
+        }
+      } else if (reportType.endsWith("（波浪）")){ // VPWW59
+        for (const kind of msgKinds){
+          const properties = kind.querySelectorAll('Property');
+          for (const property of properties){
+            const propertyType = property.querySelector('Type').textContent;
+            if (propertyType === "波"){
+              const isLocal = !!property.querySelector('WaveHeightPart > Base > Local');
+
+              if (isLocal){
+                const locals = property.querySelectorAll('WaveHeightPart > Base > Local');
+                const texts = [];
+                for (const local of locals){
+                  const localName = local.querySelector('AreaName').textContent;
+                  const waveHeight = local.querySelector('WaveHeight').textContent;
+                  const subText = `${localName}：${waveHeight} m`;
+
+                  texts.push(subText);
+                }
+                NewsOperator.add(newsTitle + "波浪", "［波高］ " + texts.join(" ，　"), mainText, { duration: newsViewTime });
+                // 例「［波高］ 陸上：3 m ，　オホーツク海：6 m」
+              } else {
+                const waveHeight = property.querySelector('WaveHeightPart > Base > WaveHeight').textContent;
+                const subText = `${waveHeight} m`;
+
+                NewsOperator.add(newsTitle + "波浪", "［波高］ " + subText, mainText, { duration: newsViewTime });
+                // 例「［波高］ 3 m」
+              }
+            }
+          }
+        }
+      } else if (reportType.endsWith("（大雪）")){ // VPWW60
+        for (const kind of msgKinds){
+          const properties = kind.querySelectorAll('Property');
+          for (const property of properties){
+            const propertyType = property.querySelector('Type').textContent;
+            if (propertyType === "雪"){
+              const isLocal = !!property.querySelector('SnowfallDepthPart > Base > Local');
+
+              if (isLocal){
+                const locals = property.querySelectorAll('SnowfallDepthPart > Base > Local');
+                for (const local of locals){
+                  const localName = local.querySelector('AreaName').textContent;
+                  const snowfalls = local.querySelectorAll('SnowfallDepth');
+
+                  const texts = [];
+                  for (const snowfall of snowfalls){
+                    const snowfallType = zen2han(snowfall.getAttribute('type'));
+                    const snowfallDepth = snowfall.textContent;
+                    texts.push(`${snowfallType} ${snowfallDepth} cm`);
+                  }
+                  const subText = `${localName} ： ${texts.join(" ，　")}`;
+
+                  NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: newsViewTime });
+                  // 例「陸上 ： 6時間最大降雪量 40 cm ，　12時間最大降雪量 60 cm」
+                }
+              } else {
+                const snowfalls = property.querySelectorAll('SnowfallDepthPart > Base > SnowfallDepth');
+                const texts = [];
+                for (const snowfall of snowfalls){
+                  const snowfallType = zen2han(snowfall.getAttribute('type'));
+                  const snowfallDepth = snowfall.textContent;
+                  texts.push(`${snowfallType} ${snowfallDepth} cm`);
+                }
+                const subText = texts.join(" ，　");
+
+                NewsOperator.add(newsTitle + "大雪", subText, mainText, { duration: newsViewTime });
+                // 例「12時間最大降雪量 60 cm ，　24時間最大降雪量 90 cm」
+              }
+            }
+          }
+        }
+      } else { // VPWW61
+        NewsOperator.add(newsTitle, headlineText, mainText, { duration: newsViewTime });
       }
-    } else { // VPWW61
-      NewsOperator.add(newsTitle, headlineText, mainText, { duration: newsViewTime });
     }
   }
 
@@ -4440,6 +4527,7 @@ const byteToString = byte => {
     document.getElementById('volFldOc5').value = data.settings.volume.fldoc5 ?? 100;
     document.getElementById('volFldOc4').value = data.settings.volume.fldoc4 ?? 100;
 
+    document.getElementById("speech-enabled").value = (data.settings?.speech?.enabled ?? true) ? "1" : "0";
     document.getElementById("speech-vol-input").value = data.settings?.speech?.volume ?? 1;
     document.getElementById("speech-checkbox-eew").checked = data.settings?.speech?.options?.EEW ?? true;
     document.getElementById("speech-checkbox-quake").checked = data.settings?.speech?.options?.Quake ?? true;
@@ -4560,6 +4648,7 @@ const byteToString = byte => {
   speechBase.addEventListener("volumeInput", event => {
     elements.id.speechVolView.textContent = (100 * event.detail.value).toFixed() + "%";
   });
+  speechBase.enabled = (data.settings?.speech?.enabled ?? true);
   await speechBase.init(audioAPI.context, audioAPI.masterGain);
 
   // // モジュールらの読み込み
@@ -4644,6 +4733,10 @@ document.getElementById("ChangeToEq").addEventListener('click', function (){SetM
 
 document.getElementById("speech-vol-input").addEventListener("input", function (event){
   speechBase.volume = event.target.valueAsNumber;
+});
+document.getElementById("speech-enabled").addEventListener("change", function (event){
+  const enabled = event.target.value === "1";
+  speechBase.enabled = enabled;
 });
 document.getElementById("speech-test1").addEventListener("click", function (){
   speechBase.start([
