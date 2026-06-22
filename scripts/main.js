@@ -160,8 +160,8 @@ const elements = {
     volEEWh: document.getElementById('volEEWh'),
     volEEWc: document.getElementById('volEEWc'),
     volEEWp: document.getElementById('volEEWp'),
-    volGL: document.getElementById('volGL'),
     volNtc: document.getElementById('volNtc'),
+    volUrgW: document.getElementById('volUrgW'),
     volSpW: document.getElementById('volSpW'),
     volTnm: document.getElementById('volTnm'),
     volHvRa: document.getElementById('volHvRa'),
@@ -223,8 +223,8 @@ const Assets = {
       major: { _src: "../sound/quake-major.mp3" },
     },
     warning: {
+      Urgent: { _src: "../sound/urgent-warning.mp3" },
       Notice: { _src: "../sound/warn-tornado.mp3" },
-      GroundLoosening: { _src: "../sound/warn-ground.mp3" },
       Emergency: { _src: "../sound/warn-emergency.mp3" },
       HeavyRain: { _src: "../sound/warn-heavyrain.mp3" },
       Flood5: { _src: "../sound/warn-flood5.mp3" },
@@ -1278,8 +1278,8 @@ async function savedata(){
         eewH: document.getElementById("volEEWh").valueAsNumber,
         eewC: document.getElementById("volEEWc").valueAsNumber,
         eewP: document.getElementById("volEEWp").valueAsNumber,
-        gl: document.getElementById("volGL").valueAsNumber,
         ntc: document.getElementById("volNtc").valueAsNumber,
+        urgW: document.getElementById("volUrgW").valueAsNumber,
         spW: document.getElementById("volSpW").valueAsNumber,
         tnm: document.getElementById("volTnm").valueAsNumber,
         hvra: document.getElementById('volHvRa').valueAsNumber,
@@ -3337,6 +3337,8 @@ const weatherMaintainanceTime = {
   notified: false
 };
 
+const toXml = str => (new DOMParser()).parseFromString(str, "text/xml");
+
 function weatherInfo(){
   $.ajax({
     type: 'GET',
@@ -3588,6 +3590,26 @@ const weatherVPWWii = dataXml => {
     "09", // レベル３土砂災害警報
   ];
 
+  const URGENT_CODES = [
+    "43", // レベル４大雨危険警報
+    "48", // レベル４高潮危険警報
+    "49", // レベル４土砂災害危険警報
+  ];
+
+  const LEVEL5_CODES = [
+    "33", // レベル５大雨特別警報
+    "38", // レベル５高潮特別警報
+    "39", // レベル５土砂災害特別警報
+  ];
+
+  const EMERGENCY_CODES = [
+    ...LEVEL5_CODES,
+    "32", // 暴風雪特別警報
+    "35", // 暴風特別警報
+    "36", // 大雪特別警報
+    "37", // 波浪特別警報
+  ];
+
   const issuedAlertCodes = [];
   let newsViewTime = 7000;
 
@@ -3680,9 +3702,6 @@ const weatherVPWWii = dataXml => {
           // const commentText = dataXml.querySelector('Comment > Text')?.textContent;
 
           NewsOperator.add(newsTitle + "土砂", criteriaPeriod || "", mainText, { duration: newsViewTime });
-          if (kind.querySelector('Code').textContent === "49"){ // 危険警報のみ
-            SFXController.play(sounds.warning.GroundLoosening);
-          }
         }
       } else if (reportType.endsWith("（高潮）")){ // VPWW57
         for (const kind of msgKinds){
@@ -3838,6 +3857,7 @@ const weatherVPWWii = dataXml => {
   }
 
   const officeId = dataXml.querySelector('Head > Headline > Information[type="気象警報・注意報（府県予報区等）"] > Item > Areas > Area > Code').textContent;
+
   // 特別警報の読み上げ処理（市町村ごとの処理だと何回も鳴ってしまう）
   if (issuedAlertCodes.includes("33")){ // 大雨特別警報
     if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
@@ -3845,22 +3865,33 @@ const weatherVPWWii = dataXml => {
       { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
       { type: "path", speakerId: "speaker8", path: "warning.rainfall" }
     ]);
-    SFXController.play(sounds.warning.Emergency);
   } else if (issuedAlertCodes.includes("38")){ // 高潮特別警報
     if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
       { type: "wait", time: 3500 },
       { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
       { type: "path", speakerId: "speaker8", path: "warning.stormsurge" }
     ]);
-    SFXController.play(sounds.warning.Emergency);
   } else if (issuedAlertCodes.includes("39")){ // 土砂災害特別警報
     if (elements.id.speechCheckboxSPwarn.checked) speechBase.start([
       { type: "wait", time: 3500 },
       { type: "path", speakerId: "speaker8", path: "warning.prefecture." + officeId },
       { type: "path", speakerId: "speaker8", path: "warning.landslide" }
     ]);
-    SFXController.play(sounds.warning.Emergency);
   }
+
+  // 効果音処理
+  (async () => {
+    const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    if (issuedAlertCodes.some(code => EMERGENCY_CODES.includes(code))){
+      SFXController.play(sounds.warning.Emergency);
+      await wait(2000);
+    }
+    if (issuedAlertCodes.some(code => URGENT_CODES.includes(code))){
+      SFXController.play(sounds.warning.Urgent);
+      await wait(2000);
+    }
+  })();
 };
 
 
@@ -4527,8 +4558,8 @@ const byteToString = byte => {
     document.getElementById('volEEWh').value = data.settings.volume.eewH ?? 10;
     document.getElementById('volEEWc').value = data.settings.volume.eewC ?? 100;
     document.getElementById('volEEWp').value = data.settings.volume.eewP ?? 100;
-    document.getElementById('volGL').value = data.settings.volume.gl ?? 100;
     document.getElementById('volNtc').value = data.settings.volume.ntc ?? 100;
+    document.getElementById('volUrgW').value = data.settings.volume.urgW ?? data.settings.volume.gl ?? 100;
     document.getElementById('volSpW').value = data.settings.volume.spW ?? 100;
     document.getElementById('volTnm').value = data.settings.volume.tnm ?? 100;
     document.getElementById('volHvRa').value = data.settings.volume.hvra ?? 100;
@@ -4604,8 +4635,8 @@ const byteToString = byte => {
   sounds.eew.last._defaultGain = elements.id.volEEWl9.valueAsNumber / 100;
   sounds.eew.plum._defaultGain = elements.id.volEEWp.valueAsNumber / 100;
   sounds.eew.custom._defaultGain = elements.id.volEEWc.valueAsNumber / 100;
-  sounds.warning.GroundLoosening._defaultGain = elements.id.volGL.valueAsNumber / 100;
   sounds.warning.Notice._defaultGain = elements.id.volNtc.valueAsNumber / 100;
+  sounds.warning.Urgent._defaultGain = elements.id.volUrgW.valueAsNumber / 100;
   sounds.warning.Emergency._defaultGain = elements.id.volSpW.valueAsNumber / 100;
   sounds.tsunami.watch._defaultGain = elements.id.volTnm.valueAsNumber / 100;
   sounds.tsunami.notice._defaultGain = elements.id.volTnm.valueAsNumber / 100;
@@ -4802,8 +4833,8 @@ document.getElementById('volEEWl9').addEventListener("input", function (event){ 
 document.getElementById('volEEWh').addEventListener("input", function (event){ audioAPI.gainNode.gain.value = event.target.value / 100; });
 document.getElementById('volEEWp').addEventListener("input", function (event){ SFXController.volume(sounds.eew.plum, event.target.value / 100) });
 document.getElementById('volEEWc').addEventListener("input", function (event){ SFXController.volume(sounds.eew.custom, event.target.value / 100) });
-document.getElementById('volGL').addEventListener("input", function (event){ SFXController.volume(sounds.warning.GroundLoosening, event.target.value / 100); });
 document.getElementById('volNtc').addEventListener("input", function (event){ SFXController.volume(sounds.warning.Notice, event.target.value / 100); });
+document.getElementById('volUrgW').addEventListener("input", function (event){ SFXController.volume(sounds.warning.Urgent, event.target.value / 100); });
 document.getElementById('volSpW').addEventListener("input", function (event){ SFXController.volume(sounds.warning.Emergency, event.target.value / 100); });
 document.getElementById('volTnm').addEventListener("input", function (event){
   const volume = event.target.value / 100;
@@ -4822,8 +4853,8 @@ document.getElementById('voltestEEWl9').addEventListener("click", function(){ SF
 document.getElementById('voltestEEWh').addEventListener("click", function(){ audioAPI.fun.startOscillator(); audioAPI.fun.stopOscillator(3);});
 document.getElementById('voltestEEWp').addEventListener("click", function(){ SFXController.play(sounds.eew.plum); });
 document.getElementById('voltestEEWcustom').addEventListener("click", function(){ SFXController.play(sounds.eew.custom); });
-document.getElementById('voltestGL').addEventListener("click", function(){ SFXController.play(sounds.warning.GroundLoosening); });
 document.getElementById('voltestNtc').addEventListener("click", function(){ SFXController.play(sounds.warning.Notice); });
+document.getElementById('voltestUrgW').addEventListener("click", function(){ SFXController.play(sounds.warning.Urgent); });
 document.getElementById('voltestSpW').addEventListener("click", function(){ SFXController.play(sounds.warning.Emergency); });
 document.getElementById('voltestTnm').addEventListener("click", function(){ SFXController.play(sounds.tsunami[["watch","warning","notice","majorwarning"][Math.floor(Math.random()*4)]]); });
 document.getElementById('voltestHvRa').addEventListener("click", function(){ SFXController.play(sounds.warning.HeavyRain); });
