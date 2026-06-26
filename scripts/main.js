@@ -4901,7 +4901,6 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
       gainNode.gain.value = 0;
       gainNode.disconnect();
       try {
-        context.close();
         bufferSource.stop();
       } catch {}
       bufferSource.disconnect();
@@ -4958,18 +4957,17 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
     reader.addEventListener("load", function(){
       const index = reader.index;
       const here = (backMsc[index] = {});
-      here.context = new AudioContext();
-      here.gainNode = here.context.createGain();
-      here.bufferSource = here.context.createBufferSource();
-      here.context.mIndex = index;
+      here.context = audioAPI.context;
+      here.gainNode = audioAPI.context.createGain();
+      here.bufferSource = audioAPI.context.createBufferSource();
       here.gainNode.mIndex = index;
       here.bufferSource.mIndex = index;
       here.bufferSource.createdAt = new Date();
-      here.context.decodeAudioData(this.result, function(buffer){
+      audioAPI.context.decodeAudioData(this.result, function(buffer){
         // debugger;
         here.bufferSource.buffer = buffer;
         here.bufferSource.playbackRate.value = 1;
-        here.bufferSource.connect(backMsc[index].gainNode).connect(backMsc[index].context.destination);
+        here.bufferSource.connect(backMsc[index].gainNode).connect(audioAPI.masterGain);
         here.startedAt = 0;
         here.pausedAt = 0;
         here.lastUpdate = 0;
@@ -4985,7 +4983,7 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
           if (this.onStateChange) this.onStateChange(true, this.context.mIndex);
         };
         here.bufferEnd = function(event){
-          const musicIndex = event.target.context.mIndex;
+          const musicIndex = event.target.mIndex;
           const here = backMsc[musicIndex];
           const bufferSource = here.bufferSource;
           const gainNode = here.gainNode;
