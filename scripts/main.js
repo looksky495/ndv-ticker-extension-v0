@@ -4650,6 +4650,7 @@ const byteToString = byte => {
   sounds.warning.HeavyRain._defaultGain = elements.id.volHvRa.valueAsNumber / 100;
   sounds.warning.Flood4._defaultGain = elements.id.volFldOc4.valueAsNumber / 100;
   sounds.warning.Flood5._defaultGain = elements.id.volFldOc5.valueAsNumber / 100;
+  sounds.tsunami.obs._defaultGain = elements.id.volTnm.valueAsNumber / 100;
   for (const item of Object.keys(sounds)) propLoop(sounds, item);
 
   requestAnimationFrame(Routines.main);
@@ -4855,6 +4856,7 @@ document.getElementById('volTnm').addEventListener("input", function (event){
   SFXController.volume(sounds.tsunami.notice, volume);
   SFXController.volume(sounds.tsunami.warning, volume);
   SFXController.volume(sounds.tsunami.majorwarning, volume);
+  SFXController.volume(sounds.tsunami.obs, volume);
 });
 document.getElementById('volHvRa').addEventListener("input", function (event){ SFXController.volume(sounds.warning.HeavyRain, event.target.value / 100); });
 document.getElementById('volFldOc5').addEventListener("input", function (event){ SFXController.volume(sounds.warning.Flood5, event.target.value / 100); });
