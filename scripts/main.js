@@ -1286,6 +1286,7 @@ async function savedata(){
         hvra: document.getElementById('volHvRa').valueAsNumber,
         fldoc5: document.getElementById('volFldOc5').valueAsNumber,
         fldoc4: document.getElementById('volFldOc4').valueAsNumber,
+        master: elements.id.masterGainRange.valueAsNumber,
         quake: []
       },
       gainPrograms: audioAPI.gainTimer,
@@ -4590,6 +4591,9 @@ const byteToString = byte => {
     if (isSaveForced) savedata();
     isSoraview = data.settings.soraview;
     audioAPI.gainNode.gain.value = data.settings.volume.eewH / 100;
+    const masterGainLoad = data.settings.volume.master ?? 1;
+    elements.id.masterGainRange.value = masterGainLoad;
+    audioAPI.masterGainValue = masterGainLoad;
 
     document.addEventListener("DOMContentLoaded", () => {
       // console.log("DOMContentLoaded");
