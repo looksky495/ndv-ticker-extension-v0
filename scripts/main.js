@@ -4712,14 +4712,22 @@ function changeTextSpeed (value){
 
 // イベント類
 document.getElementById("into-fullscreen").addEventListener('click', function(){
-  const ratio = (window.outerWidth-Window_FrameWidth)/window.innerWidth;
+  // ウィンドウサイズを都度計算、フレームの幅を考慮してリサイズする
+  const frameWidth = PlatformOS === "win" ? 16 : 0;
+  const ratio = (window.outerWidth - frameWidth) / window.innerWidth;
+
+  const rawFrameHeight = window.outerHeight - window.innerHeight * ratio;
+  const frameHeight = (rawFrameHeight >= 0 && rawFrameHeight <= 200)
+    ? rawFrameHeight
+    : Math.max(0, window.outerHeight - window.innerHeight);
+
   document.getElementsByClassName("canvas-container")[0].classList.add("fullview");
   document.body.classList.add("fullview");
   heightBeforeFull = window.outerHeight;
 
   window.resizeTo(
-    Math.floor(1212 * ratio + Window_FrameWidth),
-    Math.floor(128 * ratio + Window_FrameHeight)
+    Math.floor(1212 * ratio + frameWidth),
+    Math.floor(128 * ratio + frameHeight)
   );
   anim_fullscreen.start();
 });
