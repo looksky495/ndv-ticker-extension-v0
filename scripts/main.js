@@ -4061,12 +4061,12 @@ DataOperator.earthquake.onActivated = (eventId, detail) => {
 const SFXController = {
   play: soundData => {
     if (!soundData) return;
-    if (!soundData.canPlay) soundData.audioEndedEvent();
+    if (!soundData.canPlay || !soundData.audioData) soundData.audioEndedEvent();
     soundData.buffer.start(0);
     soundData.canPlay = false;
   },
   volume: (soundData, volume) => {
-    if (!soundData) return;
+    if (!soundData || !soundData.gain) return;
     soundData.gain.gain.value = volume - 0;
   }
 };
