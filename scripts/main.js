@@ -1287,7 +1287,10 @@ async function savedata(){
         fldoc5: document.getElementById('volFldOc5').valueAsNumber,
         fldoc4: document.getElementById('volFldOc4').valueAsNumber,
         master: elements.id.masterGainRange.valueAsNumber,
-        quake: []
+        quake: elements.class.sound_quake_volume.map((item, i) => ({
+          volume: item.valueAsNumber,
+          type: elements.class.sound_quake_type[i].getAttribute("data-type")
+        }))
       },
       gainPrograms: audioAPI.gainTimer,
       speech: {
