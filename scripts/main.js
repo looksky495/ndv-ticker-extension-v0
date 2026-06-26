@@ -46,10 +46,11 @@ const AppVersionHistory = [
   "β0.7.0",
   "β0.7.1",
   "β0.7.2",
+  "β0.7.3",
 ];
 
-const AppVersionCode = "beta34";
-const AppVersionView = "β0.7.2";
+const AppVersionCode = "beta35";
+const AppVersionView = "β0.7.3";
 console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
@@ -1647,11 +1648,11 @@ const Routines = {
     context.fillStyle = colorScheme[colorThemeMode][5][3][mscale];
     context.fillText(NewsOperator.viewing.title, 35, 45, 1010);
   },
-  main: function mainRoutines(lastAnimationTimestamp){
+  main: function mainRoutines(){
     try {
     // 60 fps 以上の更新は行わない
     const currentTime = Date.now();
-    const deltaTime = currentTime - lastAnimationTimestamp;
+    const deltaTime = currentTime - Routines.memory.lastAnimationTimestamp;
     if (deltaTime < 16) return;
     Routines.memory.lastAnimationTimestamp = currentTime;
 
