@@ -1219,6 +1219,8 @@ const intensity_list = {
 };
 
 async function savedata(){
+  lastSaveTime = Date.now();
+  try {
   await chrome.storage.sync.set({
     mode0: normalText.rawText,
     mode3: [
@@ -1315,8 +1317,10 @@ async function savedata(){
     }
   });
 
-  lastSaveTime = Date.now();
   console.log("Settings saved.");
+  } catch (e){
+    console.error("Settings save failed: " + e);
+  }
 }
 
 function bit(number, bitL){
