@@ -353,22 +353,22 @@ const audioAPI = {
     button.appendChild(removeImg);
     child.append(label, button);
     elements.id.gainTimer.appendChild(child);
-    removeImg.index = elements.id.gainTimers.length;
-    elements.id.gainTimers.push({ target, effective, time, gain, child });
-    removeImg.addEventListener("click", event => {
-      const target = elements.id.gainTimers[event.target.index];
+
+    const timerEntry = { target, effective, time, gain, child };
+    elements.id.gainTimers.push(timerEntry);
+    removeImg.addEventListener("click", () => {
+      const index = elements.id.gainTimers.indexOf(timerEntry);
+      if (index === -1) return;
       if (!confirm("この時刻指定を削除しますか？")) return;
-      elements.id.gainTimers.splice(event.target.index, 1);
-      target.child.remove();
+      timerEntry.child.remove();
+      elements.id.gainTimers.splice(index, 1);
       audioAPI.getGainTimer();
     });
-    for (const item of elements.id.gainTimers){
-      item.target.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
-      item.effective.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
-      item.time.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
-      item.gain.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
-    }
-    return elements.id.gainTimers[removeImg.index];
+    timerEntry.target.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
+    timerEntry.effective.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
+    timerEntry.time.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
+    timerEntry.gain.addEventListener("input", audioAPI.getGainTimer.bind(audioAPI));
+    return timerEntry;
   },
   get masterGainValue (){
     return audioAPI.masterGain.gain.value;
@@ -1238,6 +1238,7 @@ async function savedata(){
       //   document.getElementsByName('scrollfix')[4].checked
       // ],
       viewTsunamiType: elements.id.viewTsunamiType.value,
+      partiallyReadingAme: elements.id.setParticallyReadingAme.checked,
       soraview: document.getElementById('isSoraview').checked,
       weatherWarn: {
         ignore: {
@@ -1316,7 +1317,6 @@ async function savedata(){
       textSpeed
     }
   });
-
   console.log("Settings saved.");
   } catch (e){
     console.error("Settings save failed: " + e);
@@ -4060,8 +4060,8 @@ DataOperator.earthquake.onActivated = (eventId, detail) => {
 
 const SFXController = {
   play: soundData => {
-    if (!soundData) return;
-    if (!soundData.canPlay || !soundData.audioData) soundData.audioEndedEvent();
+    if (!soundData || !soundData.audioData) return;
+    if (!soundData.canPlay) soundData.audioEndedEvent();
     soundData.buffer.start(0);
     soundData.canPlay = false;
   },
@@ -4468,13 +4468,13 @@ const byteToString = byte => {
   const data = await chrome.storage.sync.get(['mode0', 'mode3', 'settings', 'app']);
   {
     let isSaveForced = false;
-    const currentVerID = AppVersionHistory.indexOf(data.app.lastVer);
+    const currentVerID = data.app ? AppVersionHistory.indexOf(data.app.lastVer) : -1;
     // Release note: 必ず追加すること
     // console.log(JSON.stringify(c));
     if ((!data.app) || data.app.newUser){
       isSaveForced = true;
     } else {
-      if (currentVerID === -1) alert(data.app.lastVer+" ってどのバージョンですか？？？？？？");
+      if (currentVerID === -1) alert(data.app.lastVer + " ってどのバージョンですか？？？？？？");
       // if (data.app.lastVer !== AppVersionView) /* アップデート後初回起動 */ isSaveForced = true;
       if (currentVerID <  3){ /* β0.1.2以前 */ if(data.settings.volume.eewH == 100){ alert("（ "+data.app.lastVer+" からのバージョンアップを検知しました）\n緊急地震速報(警報)時の音量を再確認し、必ず保存してください。"); }}
       if (currentVerID < 13){ /* β0.2.5以前 */ data.settings.interval.wniRiver = Math.max(data.settings.interval.wniRiver, 120000); }
@@ -4553,6 +4553,19 @@ const byteToString = byte => {
     document.getElementById("weatherWarn.control.ignoreAdvisory").checked = data.settings.weatherWarn?.ignore?.advisory ?? false;
     document.getElementById("weatherWarn.control.ignoreWarning").checked = data.settings.weatherWarn?.ignore?.warning ?? false;
 
+    // if (data.settings.details?.earthquake){
+    //   document.getElementsByName('minint')[0].value = data.settings.details.earthquake.intensity;
+    //   document.getElementsByName('minmag')[0].value = data.settings.details.earthquake.magnitude;
+    //   document.getElementsByName('depmin')[0].value = data.settings.details.earthquake.depth;
+    // }
+    // if (data.settings.details?.eew){
+    //   document.getElementsByName('eewminint')[0].value = data.settings.details.eew.intensity;
+    //   document.getElementsByName('eewintunknown')[0].value = data.settings.details.eew.unknown;
+    //   document.getElementsByName('eewminmag')[0].value = data.settings.details.eew.magnitude;
+    //   document.getElementsByName('eewdepmin')[0].value = data.settings.details.eew.depth;
+    // }
+    elements.id.setParticallyReadingAme.checked = data.settings?.partiallyReadingAme ?? true;
+
     document.getElementById('setIntervalNHKquake').value = data.settings.interval.nhkQuake;
     document.getElementById('setIntervalJmaWt').value = data.settings.interval.jmaDevFeed;
     document.getElementById('setIntervalTenkiJpTsu').value = data.settings.interval.tenkiJPtsunami;
@@ -4595,17 +4608,14 @@ const byteToString = byte => {
     colorThemeMode = data.settings?.theme?.color ?? 0;
     audioAPI.setGainTimer(data.settings?.gainPrograms ?? []);
 
-    if (isSaveForced) savedata();
+    if (isSaveForced) await savedata();
     isSoraview = data.settings.soraview;
     audioAPI.gainNode.gain.value = data.settings.volume.eewH / 100;
     const masterGainLoad = data.settings.volume.master ?? 1;
     elements.id.masterGainRange.value = masterGainLoad;
     audioAPI.masterGainValue = masterGainLoad;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      // console.log("DOMContentLoaded");
-      resetNormalMode();
-    });
+    resetNormalMode();
   }
 
   const audioEndedEvent = function (){
@@ -4989,7 +4999,7 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
           this.startedAt = this.context.currentTime - startTime;
           this.pausedAt = 0;
           this.playing = true;
-          if (this.onStateChange) this.onStateChange(true, this.context.mIndex);
+          if (this.onStateChange) this.onStateChange(true, index);
         };
         here.bufferEnd = function(event){
           const musicIndex = event.target.mIndex;
@@ -5122,6 +5132,9 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
           const here = backMsc[index];
           here.currentTime = event.currentTarget.value * here.bufferSource.buffer.duration;
         });
+      }, function(e){
+        console.error("BGM の音声データのデコードに失敗しました:", e);
+        delete backMsc[index];
       });
     });
     reader.readAsArrayBuffer(e.target.files[i]);
