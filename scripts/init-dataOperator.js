@@ -620,7 +620,7 @@ const it = window.DataOperator = {
             /** @type {QT.Hypocenter | QT.IntlHypocenter | QT.DetailedHypocenter | import("../modules/jmaquake/report-vxse61").VXSE61.Hypocenter} */
             const hypocenter = data.Body.Earthquake.Hypocenter;
             const coordinates = this.parseCoordinate(hypocenter.Area.Coordinate_WGS || hypocenter.Area.Coordinate);
-            if (coordinates[2]){
+            if (coordinates.length >= 3){
               if (coordinates[2] === 0){
                 detail.summaryText.depth = [
                   "震源の深さはごく浅いです。",
