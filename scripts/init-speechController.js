@@ -323,10 +323,18 @@ class AudioSpeechController extends EventTarget {
     const ZipData = {};
     for (const speaker of this.#speakers){
       if (speaker.isAvaliable){
-        ZipData[speaker.id] = await (new Promise(resolve => {
+        ZipData[speaker.id] = await (new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.addEventListener("load", () => {
             resolve(xhr.response);
+          });
+          xhr.addEventListener("error", () => {
+            this.#speechStatusEvent(this.speechStatus.INIT_FAILED, new Error("音声ファイル " + xhr.requestFileName + " の読み込みに失敗しました。"));
+            reject(new Error("Failed to load audio file: " + xhr.requestFileName));
+          });
+          xhr.addEventListener("abort", () => {
+            this.#speechStatusEvent(this.speechStatus.INIT_FAILED, new Error("音声ファイル " + xhr.requestFileName + " の読み込みが中断されました。"));
+            reject(new Error("Aborted to load audio file: " + xhr.requestFileName));
           });
           xhr.addEventListener("progress", event => {
             if (event.lengthComputable){
