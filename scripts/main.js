@@ -5130,7 +5130,9 @@ document.getElementsByClassName('BGMinput')[0].addEventListener('change', functi
         });
       }, function(e){
         console.error("BGM の音声データのデコードに失敗しました:", e);
-        delete backMsc[index];
+        here.failed = true;
+        const fileNameEl = document.querySelectorAll(".musicFileName")[index];
+        if (fileNameEl) fileNameEl.insertAdjacentHTML("beforeend", ' <span style="color:#f66;font-size:12px;">[読み込みエラー]</span>');
       });
     });
     reader.readAsArrayBuffer(e.target.files[i]);
