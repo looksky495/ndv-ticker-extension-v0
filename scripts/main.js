@@ -121,12 +121,8 @@ const Data = {};
 
 // プラットフォームに合わせて最大化時のフレーム幅を調整
 let PlatformOS = null;
-let Window_FrameWidth = 0;
-let Window_FrameHeight = window.outerHeight - window.innerHeight * window.outerWidth / window.innerWidth;
 chrome.runtime.getPlatformInfo().then(info => {
   PlatformOS = info.os;
-  Window_FrameWidth = PlatformOS === "win" ? 16 : 0;
-  Window_FrameHeight = window.outerHeight - window.innerHeight * (window.outerWidth - Window_FrameWidth) / window.innerWidth;
 });
 
 // バージョン表示
