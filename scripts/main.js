@@ -2407,10 +2407,10 @@ function eewChecking_c1(){
           if (audioAPI.oscillatorNode.starting) audioAPI.fun.stopOscillator();
         }
         const isForcedTime = eewOriginTime.getTime()+90000 > getFormattedDate(2);
-        if (isForcedTime || eewReportNumber < 13){
+        if (isForcedTime || eewReportNumber < 13 || mode !== 2){
           SetMode(1);
+          eewMapDraw(data.longitude-0, data.latitude-0);
         }
-        eewMapDraw(data.longitude-0, data.latitude-0);
         if ((isForcedTime || testNow) && viewMode === 1) eewSpeech(data.report_id, eewCalcIntensityIndex, eewEpicenterID, eewMagnitude, eewDepth);
         if (elements.id.setClipEEW.checked) copyText("／／　緊急地震速報（"+(eewIsAlert?"警報":"予報")+"）　"+(eewIsFinal?"最終":(eewReportNumber==1?"初報":"継続"))+"第"+eewReportNumber+"報　＼＼\n最大震度　　　："+eewCalcintensity+"\n震源　　　　　："+eewEpicenter+"\nマグニチュード："+eewMagnitude.toFixed(1)+"\n深さ　　　　　："+eewDepth+"㎞\n\n緊急地震速報が発表されました。\n落ち着いてください。\n上から落ちてくるものに気をつけてください。\nむりに火を消そうとしないでください。");
       }
