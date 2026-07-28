@@ -2407,7 +2407,7 @@ function eewChecking_c1(){
           if (audioAPI.oscillatorNode.starting) audioAPI.fun.stopOscillator();
         }
         const isForcedTime = eewOriginTime.getTime()+90000 > getFormattedDate(2);
-        if (isForcedTime || eewReportNumber < 13 || mode !== 2){
+        if (isForcedTime || eewReportNumber < 13 || viewMode !== 2){
           SetMode(1);
           eewMapDraw(data.longitude-0, data.latitude-0);
         }
