@@ -472,7 +472,7 @@ const it = window.DataOperator = {
           for (const area of pref.Area){
             if (!area.City) continue;
             for (const city of area.City){
-              const maxIntIndex = this.shindo_list[city.MaxInt];
+              const maxIntIndex = this.shindo_list[city.MaxInt ?? city.Condition];
               if (!Object.hasOwn(prefShindoList[maxIntIndex], pref.Name)){
                 prefShindoList[maxIntIndex][pref.Name] = [];
               }

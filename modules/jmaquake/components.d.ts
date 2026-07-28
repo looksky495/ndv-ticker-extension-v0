@@ -103,14 +103,14 @@ export namespace QT {
   }
   
   export interface IntensityObs {
-    MaxInt: ShortIntCode;
+    MaxInt: ShortMaxIntCode;
     Pref: IntensityObsPref[];
   }
 
   export interface IntensityObsPref {
     Name:   string;
     Code:   string;
-    MaxInt: ShortIntCode;
+    MaxInt?: ShortMaxIntCode;
     Revise?: "追加" | "上方修正" | "下方修正";
     Area:   IntensityObsArea[];
     enName: string;
@@ -119,7 +119,7 @@ export namespace QT {
   export interface IntensityObsArea {
     Name:   string;
     Code:   string;
-    MaxInt: ShortIntCode;
+    MaxInt?: ShortMaxIntCode;
     Revise?: "追加" | "上方修正" | "下方修正";
     City?:  IntensityObsCity[];
     enName: string;
@@ -128,7 +128,8 @@ export namespace QT {
   export interface IntensityObsCity {
     Name:   string;
     Code:   string;
-    MaxInt: ShortIntCode;
+    MaxInt?: ShortMaxIntCode;
+    Condition?: "震度５弱以上未入電";
     Revise?: "追加" | "上方修正" | "下方修正";
     IntensityStation: IntensityObsStation[];
     enName: string;
@@ -152,7 +153,7 @@ export namespace QT {
   }
   
   export interface LgIntensityObs {
-    MaxInt: ShortIntCode;
+    MaxInt: ShortMaxIntCode;
     MaxLgInt: ShortLgIntCode;
     Pref: LgIntensityObsPref[];
   }
@@ -160,7 +161,7 @@ export namespace QT {
   export interface LgIntensityObsPref {
     Name: string;
     Code: string;
-    MaxInt?: ShortIntCode;
+    MaxInt?: ShortMaxIntCode;
     MaxLgInt: ShortLgIntCode;
     Revise?: "追加" | "上方修正" | "下方修正";
     Area: LgIntensityObsArea[];
@@ -170,7 +171,7 @@ export namespace QT {
   export interface LgIntensityObsArea {
     Name: string;
     Code: string;
-    MaxInt?: ShortIntCode;
+    MaxInt?: ShortMaxIntCode;
     MaxLgInt: ShortLgIntCode;
     Revise?: "追加" | "上方修正" | "下方修正";
     IntensityStation: LgIntensityStation[];
@@ -234,7 +235,8 @@ export namespace QT {
     Condition: "津波到達中と推測" | "第１波の到達を確認";
   });
 
-  export type ShortIntCode = "1" | "2" | "3" | "4" | "5@" | "震度５弱以上未入電" | "5-" | "5+" | "6-" | "6+" | "7";
+  export type ShortMaxIntCode = "1" | "2" | "3" | "4" | "5-" | "5+" | "6-" | "6+" | "7";
+  export type ShortIntCode = ShortMaxIntCode | "5@" | "震度５弱以上未入電";
   export type ShortLgIntCode = "0" | "1" | "2" | "3" | "4";
   export type InfoShindoName = "震度３" | "震度４" | "震度５弱以上未入電" | "震度５弱" | "震度５強" | "震度６弱" | "震度６強" | "震度７";
   export type InfoLPGMName = "長周期地震動階級４" | "長周期地震動階級３" | "長周期地震動階級２" | "長周期地震動階級１";
