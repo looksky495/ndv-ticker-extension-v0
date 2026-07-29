@@ -1320,6 +1320,42 @@ async function savedata(){
   }
 }
 
+async function exportSettings(){
+  try {
+    // 未保存の変更を含めるため、出力前に現在の設定を保存する
+    await savedata();
+    const data = await chrome.storage.sync.get(['mode0', 'mode3', 'settings', 'app']);
+    const now = getAdjustedDate();
+    const stamp = now.getFullYear()
+      + (now.getMonth()+1+"").padStart(2, "0")
+      + (now.getDate()+"").padStart(2, "0")
+      + "-"
+      + (now.getHours()+"").padStart(2, "0")
+      + (now.getMinutes()+"").padStart(2, "0")
+      + (now.getSeconds()+"").padStart(2, "0");
+
+    const output = {
+      type: "ndv-ticker-settings",
+      formatVersion: 1,
+      exportedAt: now.toISOString(),
+      appVersion: AppVersionView,
+      appVersionCode: AppVersionCode,
+      data
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(output, null, 2)], {type: "application/json"}));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "ndv-settings-" + stamp + ".json";
+    link.click();
+    URL.revokeObjectURL(url);
+    console.log("Settings exported.");
+  } catch (e){
+    console.error("Settings export failed: " + e);
+    alert("設定の出力に失敗しました。\n" + e);
+  }
+}
+document.getElementById("config.exportButton").addEventListener("click", exportSettings);
+
 function bit(number, bitL){
   return number & (2 ** bitL) && 1;
 }
