@@ -4070,7 +4070,7 @@ DataOperator.earthquake.onActivated = (eventId, detail) => {
   q_magnitude = detail.magnitude;
   q_maxShindo = detail.maxShindo;
   quakeText = detail.shindoOneline.slice();
-  quakeText[5] = "＜震度５弱以上と推定＞ " + quakeText[5];
+  if (quakeText[5]) quakeText[5] = "＜震度５弱以上と推定＞ " + quakeText[5];
   // 遠地地震情報の津波高さの文章をティッカー用に改変
   if (detail.summaryText.freeFormComment.includes("観測された各地の津波の高さは以下の")){
     quakeText[0] = quakeText[0].replace("　　　", `${
