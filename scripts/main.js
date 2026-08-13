@@ -3484,7 +3484,7 @@ function weatherInfo(){
  * @param {XMLDocument} dataXml
  */
 const weatherVPBS50 = async dataXml => {
-  const area = await DataOperator.area.getData();
+  const AreaData = await DataOperator.area.getData();
 
   const infoType = dataXml.querySelector('Headline > Information > Item > Kind > Condition').textContent;
   if (infoType === "取消"){
@@ -3502,16 +3502,29 @@ const weatherVPBS50 = async dataXml => {
     informations[kindType] = kindConditions;
   }
 
-  if (informations["情報タグ"] === "線状降水帯直前"){
-    NewsOperator.add(reportTitle, headlineText, "");
-  } else if (informations["情報タグ"] === "線状降水帯発生"){
-    NewsOperator.add(reportTitle, headlineText, "線状降水帯が発生しています。");
+  if (informations["情報タグ"] === "線状降水帯直前" || informations["情報タグ"] === "線状降水帯発生"){
+    const areas = Array.from(dataXml.querySelectorAll('Body > MeteorologicalInfos[type="観測実況"] > MeteorologicalInfo > Item > Area > Code'));
+    
+    for (let i = 0; i < areas.length; i ++){
+      const area = areas[i];
+      const areaCode = area.textContent;
+      const class10s = AreaData.class10s[areaCode];
+      const offices = AreaData.offices[class10s.parent];
+      const head2 = areaCode.slice(0, 2); // コード先頭2文字
+      const pointName = ((["13", "27", "37"].includes(head2) || ["460030", "472000", "473000", "474010", "474020"].includes(areaCode)) ? "" : (["01", "46", "47"].includes(head2) ? {"01": "北海道", "46": "鹿児島県", "47": "沖縄県"}[head2] : offices.name)) + class10s.name;
+
+      if (informations["情報タグ"] === "線状降水帯直前"){
+        NewsOperator.add(reportTitle, "", `(${i + 1}/${areas.length})　${pointName} では、今後3時間以内に線状降水帯が発生する可能性が高い`);
+      } else {
+        NewsOperator.add(reportTitle, "", `(${i + 1}/${areas.length})　${pointName} では、線状降水帯が発生`);
+      }
+    }
   } else if (informations["情報タグ"] === "記録雨"){
     try {
       const areaCode = dataXml.querySelector('Head > Headline > Information[type="情報タグ"] > Item > Areas > Area > Code').textContent;
-      const areaData = area.offices[area.class10s[areaCode].parent];
-      const areaJP = areaData.name.replace("（奄美地方除く）", "");
-      const areaEN = areaData.enName.replace(" (Excluding Amami)", "");
+      const parentArea = AreaData.offices[AreaData.class10s[areaCode].parent];
+      const areaJP = parentArea.name.replace("（奄美地方除く）", "");
+      const areaEN = parentArea.enName.replace(" (Excluding Amami)", "");
 
       const points = dataXml.querySelectorAll('Body > MeteorologicalInfos[type="観測実況"] > MeteorologicalInfo > Item');
       for (const point of points){
@@ -3521,7 +3534,7 @@ const weatherVPBS50 = async dataXml => {
           minute: "2-digit"
         });
 
-        const pointName = point.querySelector('Area > Name').textContent;
+        const pointName = point.querySelector('Area > Name')?.textContent ?? point.querySelector('Station > Name')?.textContent;
         const isApproxPoint = point.querySelector('Area > Status')?.textContent === "付近";
 
         const precipitationElement = point.querySelector('Kind > Property > PrecipitationPart > Precipitation');
@@ -3530,15 +3543,15 @@ const weatherVPBS50 = async dataXml => {
         const precCondition = precipitationElement.getAttribute("condition");
         const isAnalysis = precType === "前１時間解析雨量";
 
-        if (!precType.startsWith("前１時間")) continue; // 記録雨は前1時間の降水量のみ対象のはずだからそれ以外はスキップ
+        if (!precType.startsWith("前１時間")) continue;
 
         NewsOperator.add(
           "記録的短時間大雨　" + areaJP + " （" + observedTimeStr + "）", "",
-          `　${pointName}　${precCondition === "約" ? "約" : ""} ${precValue} mm/h ${precType === "以上" ? "以上" : ""} （${isAnalysis ? "解析" : "観測値"}）`
+          `　${pointName} で 1 時間に${precCondition === "約" ? "約" : ""} ${precValue} mm ${precCondition === "以上" ? "以上" : ""} （${isAnalysis ? "解析雨量" : "観測値"}）`
         );
         NewsOperator.add(
           "** Short-term Heavy Rain ** in " + areaEN + " (" + observedTimeStr + ")", "",
-          `　${pointName}　${precCondition === "約" ? "Approx. " : ""} ${precValue} mm/h ${precType === "以上" ? "or more" : ""} (${isAnalysis ? "Analysis" : "Observation"}) at ${pointName}`
+          `　${precCondition === "約" ? "Approx. " : ""} ${precValue} mm/h ${precCondition === "以上" ? "or more" : ""} ${isAnalysis ? "" : "observed "}at ${pointName}`
         );
       }
     } catch (e){
