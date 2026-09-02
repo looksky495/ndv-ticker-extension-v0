@@ -2395,7 +2395,7 @@ var isEEW = false,
 let eewOffset = NaN;
 async function eewCalcOffset_c1(){
   if (isNaN(eewOffset)){
-    return await fetch("https://smi.lmoniexp.bosai.go.jp/webservice/server/pros/latest.json?_="+(new Date()-0)).then(res => res.json()).then(data => {
+    return await fetch("https://www.lmoni.bosai.go.jp/img_svr/webservice/server/pros/latest.json?_="+(new Date()-0)).then(res => res.json()).then(data => {
       return eewOffset = new Date(data.latest_time) - new Date(data.request_time);
     });
   } else return eewOffset;

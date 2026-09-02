@@ -43,7 +43,6 @@
     "https://www.jma.go.jp/bosai/forecast/data/forecast/map.json",
     "https://weathernews.jp/river/FRICS_LWTRLV.csv",
     "https://weathernews.jp/river/csv_v2/latest.csv",
-    "https://smi.lmoniexp.bosai.go.jp/*",
     "https://www.lmoni.bosai.go.jp/*",
     "https://md-ndv356.github.io/ndv-tickers/*"
   ],
