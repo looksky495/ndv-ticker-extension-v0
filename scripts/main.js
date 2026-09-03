@@ -48,10 +48,11 @@ const AppVersionHistory = [
   "β0.7.2",
   "β0.7.3",
   "β0.7.4",
+  "β0.7.5",
 ];
 
-const AppVersionCode = "beta36";
-const AppVersionView = "β0.7.4";
+const AppVersionCode = "beta37";
+const AppVersionView = "β0.7.5";
 console.log(`%cNDV %c(Natural Disaster Viewer)%c   v.${AppVersionView}%c`,
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 19px; font-style: italic;",
   "background: #9f9; font-family: sans-serif; font-weight: 700; padding: 2px; font-size: 11px; font-style: italic;",
