@@ -2,6 +2,10 @@
 
 現在、正式版の v1 を開発中です。進捗は [looksky495/ndv-ticker-extension](https://github.com/looksky495/ndv-ticker-extension) から確認できます！
 
+## 追加
+
+* いつの間にか消えていた台風情報の表示が、復活しました。
+
 ## 修正
 
 * 緊急地震速報の表示がされない問題を修正しました。

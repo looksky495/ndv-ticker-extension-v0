@@ -427,16 +427,17 @@ const normalText = (() => {
     { text: '現在の湿度', id: "weather/humidity", kind: 'live' },
     { text: '現在の風速', id: "weather/wind", kind: 'live' },
     { text: '現在の日照時間', id: "weather/sun1h", kind: 'live' },
+    { text: '現在の気圧', id: "weather/pressure", kind: 'live' },
     { text: '現在の積雪高さ', id: "weather/snow/height", kind: 'snow' },
     { text: '過去1時間の降雪量', id: "weather/snow/1h", kind: 'snow' },
     { text: '過去6時間の降雪量', id: "weather/snow/6h", kind: 'snow' },
     { text: '過去12時間の降雪量', id: "weather/snow/12h", kind: 'snow' },
     { text: '過去24時間の降雪量', id: "weather/snow/24h", kind: 'snow' },
-    { text: '現在の気圧', id: "weather/pressure", kind: 'live' },
     { text: '河川情報', id: "weather/river", kind: 'river' },
     { text: '気象警報・注意報', id: "weather/warn", kind: 'warn' },
     { text: '避難情報', id: "weather/evacuation", kind: 'evac' },
     { text: '避難情報（緊急）', id: "weather/evacuation/emergency", kind: 'evac' },
+    { text: '台風情報', id: "weather/typh/comments", kind: 'live' },
   ];
 
   const ICONS = {

@@ -907,51 +907,72 @@ const it = window.DataOperator = {
     },
   },
   typh_comment: {
-    url_info: "https://www.jma.go.jp/bosai/information/data/typhoon.json",
+    url_info: "https://www.jma.go.jp/bosai/information/data/r8/information.json",
     url_typh: "https://www.jma.go.jp/bosai/typhoon/data/targetTc.json",
     data: {
       TC0101: {
-        lastUpdated: 1234567890,
         comment: "あいう",
-        number: 0
+        number: 0,
+        serial: 0
       }
     },
     onUpdate (){},
 
-    tracker_info: new TrafficTracker("JMA / Typhoon / typhoon.json"),
+    tracker_info: new TrafficTracker("JMA / Typhoon / information.json"),
     tracker_typh: new TrafficTracker("JMA / Typhoon / targetTc.json"),
-    tracker_vpti51: new TrafficTracker("JMA / Typhoon / VPTI51"),
-    async load(){
+    tracker_vpzj51: new TrafficTracker("JMA / Typhoon / VPZJ51"),
+
+    async load (){
       const infolist = await fetch(this.url_info + "?_=" + Date.now()).then(res => res.json());
       this.tracker_info.update();
       const typhlist = await fetch(this.url_typh + "?_=" + Date.now()).then(res => res.json());
       this.tracker_typh.update();
+
+      const targetTc = typhlist.filter(item => item.typhoonNumber);
+
       let isUpdated = false;
-      for (let i=infolist.length; i; i--){
-        const item = infolist[i-1];
-        item.unixtime = new Date(item.datetime) - 0;
-        if (item.header !== "VPTI51") continue;
-        if (this.data[item.eventId] && this.data[item.eventId].lastUpdated >= item.unixtime) continue;
-        const {comment} = await this.vpti51(item.fileName);
-        const typhNumber = (typhlist.find(candidate => item.eventId === candidate.tropicalCyclone)?.typhoonNumber ?? "0").slice(-2) - 0;
-        this.data[item.eventId] = {
-          lastUpdated: item.unixtime,
+      for (let i = infolist.length - 1; i >= 0; i --){
+        const item = infolist[i];
+
+        if (!Object.prototype.hasOwnProperty.call(item, "controlTitle") || item.controlTitle !== "全般気象解説情報") continue;
+        if (!item.infoTag.some(tag => tag.name === "情報タグ" && tag.condition.split(/\s+/g).includes("台風"))) continue;
+
+        const tcNumber = item.infoTag.find(tag => tag.name === "TC番号")?.condition;
+        if (tcNumber === undefined) continue;
+        if ((this.data[tcNumber]?.serial ?? -1) >= item.serial) continue;
+
+        const { comment } = await this.vpzj51(item.jsonName + ".json");
+        const typhNumber = (targetTc.find(candidate => {
+          return candidate.tropicalCyclone === tcNumber;
+        })?.typhoonNumber ?? "0").slice(-2) - 0;
+      
+        this.data[tcNumber] = {
           comment: comment,
-          number: typhNumber
+          number: typhNumber,
+          serial: item.serial - 0,
         };
         isUpdated = true;
-        }
+      }
+
       if (isUpdated) this.onUpdate(this);
-      },
-      async vpti51(filename){
-      const data = await fetch("https://www.jma.go.jp/bosai/information/data/typhoon/" + filename).then(res => res.json());
-      this.tracker_vpti51.update();
+    },
+
+    async vpzj51 (filename){
+      const data = await fetch("https://www.jma.go.jp/bosai/information/data/r8/denbun/" + filename).then(res => res.json());
+      this.tracker_vpzj51.update();
+
+      // 数値部分は手抜き
       return {
         headline: zen2han(data.headlineText.trim()),
-        comment: zen2han(data.commentText.replace(/\n/g, "").trim())
+        comment: zen2han(
+          data.meteorologicalInfos
+            .filter(item => ["概況", "防災事項", "付加情報"].includes(item.type))
+            .map(types => `［${types.type}］ ${types.info?.map?.(info => info?.item?.[0]?.property[0]?.textHonbun?.replace?.(/\n/g, "") ?? "")?.join?.(" ")}` ?? "").join("　")
+        )
       };
     },
   },
+
   warn_current: {
     url: "https://www.jma.go.jp/bosai/warning/data/warning/map.json",
     tracker: new TrafficTracker("JMA / Warning / map.json"),
